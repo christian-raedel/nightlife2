@@ -3,18 +3,33 @@
 (function () {
     'use strict';
 
-    var Router          = require('react-router')
-        , Routes        = Router.Routes
-        , Route         = Router.Route
-        , DefaultRoute  = Router.DefaultRoute;
+    var Router            = require('react-router')
+        , Routes          = Router.Routes
+        , Route           = Router.Route
+        , DefaultRoute    = Router.DefaultRoute;
 
-    var HomePage        = require('./pages/HomePage')
-        , SearchPage    = require('./pages/SearchPage')
-        , SettingsPage  = require('./pages/SettingsPage');
+    var HomePage          = require('./pages/HomePage')
+        , SearchPage      = require('./pages/SearchPage')
+        , SettingsPage    = require('./pages/SettingsPage');
 
-    var Style           = require('./styles/page.less');
+    var Style             = require('./styles/page.less');
+
+    var Stores            = require('./stores/Stores');
+
+    var Fluxxor           = require('fluxxor')
+        , FluxMixin       = Fluxxor.FluxMixin(React)
+        , StoreWatchMixin = Fluxxor.StoreWatchMixin;
 
     var App = React.createClass({
+        mixins: [FluxMixin, StoreWatchMixin('LanguageStore', 'ShoppingCartStore', 'SearchStore')],
+        getStateFromFlux: function () {
+            var flux = this.getFlux();
+            return {
+                supportedLanguages: flux.store('LanguageStore').getState(),
+                shoppingCart: flux.store('ShoppingCartStore').getState(),
+                serieslist: flux.store('SearchStore').getState()
+            };
+        },
         render: function () {
             return (
                 <section className="container">
@@ -48,7 +63,7 @@
 
     var Layout = (
         <Routes>
-            <Route name="app" path="/" handler={App}>
+            <Route name="app" path="/" handler={App} flux={Stores}>
                 <DefaultRoute handler={SearchPage} />
                 <Route name="search" handler={SearchPage} />
                 <Route name="settings" handler={SettingsPage} />
