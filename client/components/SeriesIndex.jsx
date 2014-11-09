@@ -10,7 +10,7 @@
 
     var SeriesIndex = React.createClass({
         getInitialState: function () {
-            return {supportedLanguages: []};
+            return {supportedLanguages: [], shoppingCart: []};
         },
         componentWillMount: function () {
             var self = this;
@@ -29,6 +29,8 @@
             });
             shell.openExternal(url);
         },
+        intoShoppingCart: function (item) {
+        },
         render: function () {
             return (
                 <section>
@@ -36,18 +38,19 @@
                         return (
                             <div key={item.id.toString() + item.language}
                                 className={'panel panel-' + (item.language === util.conf.getValue('language') ? 'success' : 'danger')}>
-                                <div className="panel-heading" style={{minHeight: '55px'}}>
-                                    <h3 className="panel-title">
-                                        {item.name}
+                                <div className="panel-heading" style={{minHeight: '69px'}}>
+                                    <div className="panel-title">
+                                        <h2 className="col-md-10">{item.name}</h2>
                                         <div className="btn-group pull-right">
                                             <button type="button" className="btn btn-primary" onClick={this.showDetails.bind(null, item)}>
                                                 <span className="glyphicon glyphicon-eye-open"></span>
                                             </button>
-                                            <button type="button" className="btn btn-primary">
-                                                <span className="glyphicon glyphicon-shopping-cart"></span>
+                                            <button type="button" className="btn btn-primary"
+                                                onClick={this.intoShoppingCart.bind(null, item)}>
+                                                <span className={'glyphicon glyphicon-shopping-cart'}></span>
                                             </button>
                                         </div>
-                                    </h3>
+                                    </div>
                                 </div>
                                 <div className="panel-body">
                                     <table className="table">
@@ -68,10 +71,10 @@
                                                 <td>Alternative Titel:</td>
                                                 <td colSpan="3">
                                                     <ul>
-                                                        {_.map(item.alias.split('|'), function (alias) {
+                                                        {_.map(item.alias.split('|'), function (alias, idx) {
                                                             if (alias.length) {
                                                                 return (
-                                                                    <li>{alias}</li>
+                                                                    <li key={idx}>{alias}</li>
                                                                 );
                                                             }
                                                         })}

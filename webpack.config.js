@@ -21,7 +21,7 @@ module.exports = {
     plugins: [
         new webpack.ProvidePlugin({
             '_'      : 'lodash',
-            'React'  : 'react'
+            'React'  : 'react/addons'
         })
     ],
     target: 'atom'
