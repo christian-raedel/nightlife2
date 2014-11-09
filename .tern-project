@@ -1,0 +1,11 @@
+{
+    "libs": [
+        "browser"
+    ],
+    "plugins": {
+        "node": {},
+        "dontLoad": [
+            "client/bundle.js"
+        ]
+    }
+}

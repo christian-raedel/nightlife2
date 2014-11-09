@@ -1,0 +1,3 @@
+language: "de"
+basepath: "/media/run/cid/DINGE/Serien"
+filename: "{{series.name|escape}}/S{{episode.season|number:2}}E{{episode.episode|number:2}} - {{episode.name|escape}}"
