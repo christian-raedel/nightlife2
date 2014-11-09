@@ -4,6 +4,7 @@
     var CLogger  = require('node-clogger')
         , CConf  = require('node-cconf')
         , engine = require('dna').createDNA()
+        , client = require('tvdb-api-client')
         , path   = require('path')
         , argv   = require('yargs').default('config', path.resolve(__dirname, '..', 'config.yml')).argv
         , dialog = require('dialog')
@@ -12,7 +13,9 @@
     var logger = new CLogger({name: 'nightlife2'});
     module.exports.logger = logger;
 
-    var conf = new CConf('nightlife2', ['basepath', 'filename']).load(argv.config);
+    var conf = new CConf('nightlife2', ['basepath', 'filename'], {
+        supportedLanguages: client.fetchLanguages()
+    }).load(argv.config);
     module.exports.conf = conf;
 
     var re = /\^|\.|\/|\:|\0|\*|\?|\\|\"|<|>|\|/g;

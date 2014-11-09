@@ -3,10 +3,32 @@
 (function () {
     'use strict';
 
-    var remote = require('remote')
-        , util = remote.require('./client/util');
+    var remote   = require('remote')
+        , util   = remote.require('./client/util')
+        , client = remote.require('tvdb-api-client')
+        , shell  = require('shell');
 
     var SeriesIndex = React.createClass({
+        getInitialState: function () {
+            return {supportedLanguages: []};
+        },
+        componentWillMount: function () {
+            var self = this;
+            util.conf.getValue('supportedLanguages')
+            .then(function (languages) {
+                util.logger.debug(languages);
+                self.setState({supportedLanguages: languages});
+            })
+            .catch(util.errordlg)
+            .done();
+        },
+        showDetails: function (item) {
+            var url = util.engine.render('http://thetvdb.com/index.php?tab=series&id={{seriesId}}&lid={{languageId}}', {
+                seriesId: item.id,
+                languageId: _.find(this.state.supportedLanguages, {abbreviation: item.language}).id
+            });
+            shell.openExternal(url);
+        },
         render: function () {
             return (
                 <section>
@@ -14,15 +36,25 @@
                         return (
                             <div key={item.id.toString() + item.language}
                                 className={'panel panel-' + (item.language === util.conf.getValue('language') ? 'success' : 'danger')}>
-                                <div className="panel-heading">
-                                    <h3 className="panel-title">{item.name}</h3>
+                                <div className="panel-heading" style={{minHeight: '55px'}}>
+                                    <h3 className="panel-title">
+                                        {item.name}
+                                        <div className="btn-group pull-right">
+                                            <button type="button" className="btn btn-primary" onClick={this.showDetails.bind(null, item)}>
+                                                <span className="glyphicon glyphicon-eye-open"></span>
+                                            </button>
+                                            <button type="button" className="btn btn-primary">
+                                                <span className="glyphicon glyphicon-shopping-cart"></span>
+                                            </button>
+                                        </div>
+                                    </h3>
                                 </div>
                                 <div className="panel-body">
                                     <table className="table">
                                         <thead>
                                             <tr>
                                                 <th width="15%">ID:&nbsp;{item.id || '?'}</th>
-                                                <th width="20%">Sprache:&nbsp;{item.language.toUpperCase() || '?'}</th>
+                                                <th width="20%">Sprache:&nbsp;{_.find(this.state.supportedLanguages, {abbreviation: item.language}).name || '?'}</th>
                                                 <th width="45%">Sender:&nbsp;{item.network || '?'}</th>
                                                 <th width="20%">Erstausstrahlung:&nbsp;{item.firstAired || '?'}</th>
                                             </tr>
@@ -57,7 +89,7 @@
                             </div>
                         );
                     }, this)}
-                </section>                
+                </section>
             );
         }
     });
