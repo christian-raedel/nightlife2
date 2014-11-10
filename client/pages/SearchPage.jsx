@@ -9,31 +9,30 @@
 
     var SeriesIndex = require('../components/SeriesIndex');
 
-    var Fluxxor           = require('fluxxor')
-        , FluxMixin       = Fluxxor.FluxMixin(React)
-        , StoreWatchMixin = Fluxxor.StoreWatchMixin;
-
     var SearchPage = React.createClass({
-        mixins: [FluxMixin, StoreWatchMixin('SearchStore')],
         getInitialState: function () {
-            return {query: ''};
-        },
-        getStateFromFlux: function () {
-            var flux = this.getFlux();
-            return {
-                serieslist: flux.store('SearchStore').getState()
-            };
+            return {serieslist: [], queryStarted: false, query: ''};
         },
         componentDidMount: function () {
             this.refs.query.getDOMNode().focus();
         },
         handleKeyPress: function (ev) {
             if (ev.which === 13) {
-                this.getFlux().actions.fetchSeriesItems(this.state.query);
+                this.searchSeries();
             }
         },
         queryChange: function (ev) {
-            this.setState({query: ev.target.value});
+            this.setState({query: ev.target.value, queryStarted: false});
+        },
+        searchSeries: function (ev) {
+            var self = this;
+            client.fetchSeries(this.state.query, util.conf.getValue('language'))
+            .then(function (serieslist) {
+                self.setState({serieslist: serieslist, queryStarted: !serieslist.length});
+                util.logger.debug(serieslist);
+            })
+            .catch(util.errordlg)
+            .done();
         },
         render: function () {
             return (
@@ -54,8 +53,7 @@
                                         <input ref="query" type="text" className="form-control" placeholder="Serienname"
                                             onKeyPress={this.handleKeyPress} onChange={this.queryChange} />
                                         <span className="input-group-btn">
-                                            <button className="btn btn-success" type="button"
-                                                onClick={this.getFlux().actions.fetchSeriesItems.bind(null, this.state.query)}>
+                                            <button className="btn btn-success" type="button" onClick={this.searchSeries}>
                                                 <span className="glyphicon glyphicon-search"></span>&nbsp;Los!
                                             </button>
                                         </span>
@@ -64,7 +62,7 @@
                             </div>
                         </div>
                     </div>
-                    <div className={'alert alert-warning ' + (this.getFlux().store('SearchStore').getFetchStatus() && !this.state.serieslist.length ? 'show' : 'hide')}
+                    <div className={'alert alert-warning ' + (this.state.queryStarted && !this.state.serieslist.length ? 'show' : 'hide')}
                         role="alert">
                         <p>Es wurden keine Serien unter dem Namen &ldquo;{this.state.query}&rdquo; gefunden.</p>
                     </div>

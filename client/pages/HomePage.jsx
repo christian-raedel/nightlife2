@@ -3,10 +3,21 @@
 (function () {
     'use strict';
 
+    var remote = require('remote')
+        , util = remote.require('./client/util');
+
+    var Style  = require('../styles/page.less');
+
     var HomePage = React.createClass({
         render: function () {
             return (
-                <h1>Your didelidoo HomePage!</h1>
+                <div className="jumbotron">
+                    <h1 className="greetz">{util.conf.getValue('greetz')}</h1>
+                    <div className="pull-right">
+                        <img className="img-circle" src={util.conf.getValue('logo')} />
+                        <p><a className="btn btn-link" href="#/search" role="button">Los gehts!</a></p>
+                    </div>
+                </div>
             );
         }
     });

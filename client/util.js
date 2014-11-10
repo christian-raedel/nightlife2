@@ -13,9 +13,7 @@
     var logger = new CLogger({name: 'nightlife2'});
     module.exports.logger = logger;
 
-    var conf = new CConf('nightlife2', ['basepath', 'filename'], {
-        supportedLanguages: client.fetchLanguages()
-    }).load(argv.config);
+    var conf = new CConf('nightlife2', ['basepath', 'filename']).load(argv.config);
     module.exports.conf = conf;
 
     var re = /\^|\.|\/|\:|\0|\*|\?|\\|\"|<|>|\|/g;
@@ -44,4 +42,10 @@
     }
 
     module.exports.errordlg = errordlg;
+
+    function random() {
+        return _.random(2, Math.pow(2, 53)).toString();
+    }
+
+    module.exports.random = random;
 }());

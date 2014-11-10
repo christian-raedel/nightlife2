@@ -36,7 +36,7 @@
                 <section>
                     {_.map(this.props.data, function (item) {
                         return (
-                            <div key={item.id.toString() + item.language}
+                            <div key={util.random()}
                                 className={'panel panel-' + (item.language === util.conf.getValue('language') ? 'success' : 'danger')}>
                                 <div className="panel-heading" style={{minHeight: '69px'}}>
                                     <div className="panel-title">
@@ -78,10 +78,10 @@
                                                 <td>Alternative Titel:</td>
                                                 <td colSpan="3">
                                                     <ul>
-                                                        {_.map(item.alias.split('|'), function (alias, idx) {
+                                                        {_.map(item.alias.split('|'), function (alias) {
                                                             if (alias.length) {
                                                                 return (
-                                                                    <li key={idx}>{alias}</li>
+                                                                    <li key={util.random()}>{alias}</li>
                                                                 );
                                                             }
                                                         })}
