@@ -13,8 +13,17 @@
     var logger = new CLogger({name: 'nightlife2'});
     module.exports.logger = logger;
 
-    var conf = new CConf('nightlife2', ['basepath', 'filename']).load(argv.config);
+    var conf = new CConf('nightlife2', ['basepath', 'filename', 'extensions']).load(argv.config);
     module.exports.conf = conf;
+
+    function saveConf() {
+        try {
+            conf.save(argv.config);
+        } catch (err) {
+            errordlg(err);
+        }
+    }
+    module.exports.saveConf = saveConf;
 
     var re = /\^|\.|\/|\:|\0|\*|\?|\\|\"|<|>|\|/g;
     engine.use('escape', function (value) {

@@ -1,6 +1,7 @@
-language: "de"
-basepath: "/run/media/cid/DINGE/Video/Serien"
+language: de
+basepath: /run/media/cid/DINGE/Video/Serien
 filename: "{{basepath}}/{{series.name|escape}}/Staffel {{episode.season|number:2}}/S{{episode.season|number:2}}E{{episode.episode|number:2}} - {{episode.name|escape}}{{extension}}"
 extensions: "mkv|avi|mp4"
 greetz: "Alles Liebe zum Geburtstag!"
 logo: "http://witze.net/teddyb%C3%A4r,rosen.gif"
+concurrentOperations: 1

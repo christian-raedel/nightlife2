@@ -1,15 +1,16 @@
 (function () {
     'use strict';
 
-    var Fluxxor  = require('fluxxor');
+    var Fluxxor    = require('fluxxor');
 
-    var remote   = require('remote')
-        , util   = remote.require('./client/util')
-        , client = remote.require('tvdb-api-client')
-        , glob   = remote.require('glob')
-        , fs     = remote.require('fs-extra')
-        , path   = remote.require('path')
-        , q      = require('q');
+    var remote     = require('remote')
+        , util     = remote.require('./client/util')
+        , client   = remote.require('tvdb-api-client')
+        , glob     = remote.require('glob')
+        , fs       = remote.require('fs-extra')
+        , path     = remote.require('path')
+        , Backtick = require('backtick')
+        , q        = require('q');
 
     var constants = {
         ADD_CART_ITEM: 'ADD_CART_ITEM',
@@ -17,12 +18,14 @@
         CLEAR_CART_ITEMS: 'CLEAR_CART_ITEMS',
         SAVE_CART_ITEMS: 'SAVE_CART_ITEMS',
         ADD_FOLDERS_TO_CART_ITEM: 'ADD_FOLDERS_TO_CART_ITEM',
-        RUN_TASKLIST: 'RUN_TASKLIST'
+        RUN_TASKLIST: 'RUN_TASKLIST',
+        FAST_RUN_TASKLIST: 'FAST_RUN_TASKLIST'
     };
 
     var ShoppingCartStore = Fluxxor.createStore({
         initialize: function () {
-            this.cart = JSON.parse(localStorage.getItem('nightlife2:shoppingCart')) || [];
+            //this.cart = JSON.parse(localStorage.getItem('nightlife2:shoppingCart')) || [];
+            this.cart = [];
             this.progress = {min: 0, max: 100, count: 0};
             this.bindActions(
                 constants.ADD_CART_ITEM, this.onAddCartItem,
@@ -30,7 +33,8 @@
                 constants.CLEAR_CART_ITEMS, this.onClearCartItems,
                 constants.SAVE_CART_ITEMS, this.onSaveCartItems,
                 constants.ADD_FOLDERS_TO_CART_ITEM, this.onAddFoldersToCartItem,
-                constants.RUN_TASKLIST, this.onRunTasklist
+                constants.RUN_TASKLIST, this.onRunTasklist,
+                constants.FAST_RUN_TASKLIST, this.onFastRunTasklist
             );
         },
         onAddCartItem: function (payload) {
@@ -50,7 +54,7 @@
             this.onSaveCartItems();
         },
         onSaveCartItems: function () {
-            localStorage.setItem('nightlife2:shoppingCart', JSON.stringify(this.cart));
+            //localStorage.setItem('nightlife2:shoppingCart', JSON.stringify(this.cart));
         },
         onAddFoldersToCartItem: function (payload) {
             var item = _.find(this.cart, {id: payload.item.id, language: payload.item.language});
@@ -126,6 +130,11 @@
             })
             .reduce(function (prev, task) {
                 return prev.then(q.nfcall(fs.ensureDir, path.dirname(task.out)))
+                .then(function () {
+                    self.progress.task = task;
+                    self.emit('change');
+                    return self.progress;
+                })
                 .then(q.nfbind(fs.copy, task.in, task.out))
                 .then(function () {
                     self.progress.count += 1;
@@ -135,6 +144,7 @@
             }, q())
             .value()
             .then(function () {
+                self.progress = {min: 0, max: 1, count: 0, task: null};
                 self.cart = _.filter(self.cart, function (item) {
                     return !_.isArray(item.tasklist);
                 });
@@ -143,11 +153,47 @@
             .catch(function (err) {
                 util.logger.error(err.stack);
             })
+            .done();
+        },
+        onFastRunTasklist: function () {
+            var self = this;
+            var tasklist = _.chain(this.cart)
+            .reduce(function (prev, item) {
+                return prev.concat(item.tasklist);
+            }, [])
+            .tap(function (map) {
+                self.progress = {min: 0, max: map.length, count: 0, task: null};
+            })
+            .value();
+            var limit = util.conf.getValue('concurrentOperations');
+            util.logger.info('concurrentOperations:', limit);
+            var backtick = new Backtick(tasklist, {limit: limit})
+            .reduce(function (prev, pack) {
+                util.logger.debug('packet:', pack);
+                var map = _.map(pack, function (task) {
+                    return q.nfcall(fs.ensureDir, path.dirname(task.out))
+                    .then(q.nfcall.bind(null, fs.copy, task.in, task.out))
+                    .then(function () {
+                        self.progress.count += 1;
+                        self.progress.task = task;
+                        self.emit('change');
+                        return self.progress;
+                    });
+                }, q());
+                return prev.then(q.allSettled.bind(null, map));
+            }, q())
+            .catch(function (err) {
+                util.logger.error(err.stack);
+            })
             .finally(function () {
-                self.progress = {min: 0, max: 0, count: 0};
+                self.progress = {min: 0, max: 1, count: 0, task: null};
+                self.cart = _.filter(self.cart, function (item) {
+                    return !_.isArray(item.tasklist);
+                });
                 self.emit('change');
             })
             .done();
+            this.onSaveCartItems();
         },
         getState: function () {
             return this.cart;
@@ -180,6 +226,9 @@
         },
         runTasklist: function () {
             this.dispatch(constants.RUN_TASKLIST);
+        },
+        fastRunTasklist: function () {
+            this.dispatch(constants.FAST_RUN_TASKLIST);
         }
     };
 

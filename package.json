@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/christian-raedel/nightlife2",
   "dependencies": {
+    "backtick": "git+https://github.com/christian-raedel/backtick",
     "bootstrap": "^3.3.0",
     "css-loader": "^0.9.0",
     "dna": "git+https://github.com/christian-raedel/dna",

@@ -15,7 +15,7 @@
                     <h1 className="greetz">{util.conf.getValue('greetz')}</h1>
                     <div className="pull-right">
                         <img className="img-circle" src={util.conf.getValue('logo')} />
-                        <p><a className="btn btn-link" href="#/search" role="button">Los gehts!</a></p>
+                        <p><a className="btn btn-success" href="#/search" role="button">Los gehts!</a></p>
                     </div>
                 </div>
             );

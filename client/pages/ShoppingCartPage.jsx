@@ -65,11 +65,28 @@
                                 <div className="progress-bar progress-bar-success progress-bar-striped active" role="progressbar"
                                     aria-valuenow={this.state.progress.count} aria-valuemin={this.state.progress.min}
                                     aria-valuemax={this.state.progress.max} 
-                                    style={{width: Math.floor(this.state.progress.count * 100 / this.state.progress.max) + '%'}}>
-                                    <span>{Math.floor(this.state.progress.count * 100 / this.state.progress.max) + '%'}</span>
+                                    style={{width: Math.round(this.state.progress.count * 100 / this.state.progress.max) + '%'}}>
+                                    <span>{Math.round(this.state.progress.count * 100 / this.state.progress.max) + '%'}</span>
                                 </div>
                             </div>
                         </div>
+                        {
+                            this.state.progress.task ?
+                                <table className="table">
+                                    <tbody>
+                                        <tr>
+                                            <td width="10%">Kopiere</td>
+                                            <td width="90%">{this.state.progress.task.in}</td>
+                                        </tr>
+                                        <tr>
+                                            <td width="10%">nach</td>
+                                            <td width="90%">{this.state.progress.task.out}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                :
+                                <div />
+                        }
                     </div>
                     {
                         this.state.shoppingCart.length ?
