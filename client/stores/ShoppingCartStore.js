@@ -85,6 +85,7 @@
                                 return item.season == seasonNumber && item.episode == episodeNumber;
                             });
                             if (episode) {
+                                util.logger.debug('episode:', episode);
                                 return {
                                     in: file,
                                     out: util.engine.render(util.conf.getValue('filename'), {
@@ -165,23 +166,32 @@
                 self.progress = {min: 0, max: map.length, count: 0, task: null};
             })
             .value();
-            var limit = util.conf.getValue('concurrentOperations');
-            util.logger.info('concurrentOperations:', limit);
-            var backtick = new Backtick(tasklist, {limit: limit})
+            var backtick = new Backtick(tasklist, {limit: util.conf.getValue('concurrentOperations')})
             .reduce(function (prev, pack) {
                 util.logger.debug('packet:', pack);
-                var map = _.map(pack, function (task) {
-                    return q.nfcall(fs.ensureDir, path.dirname(task.out))
-                    .then(q.nfcall.bind(null, fs.copy, task.in, task.out))
-                    .then(function () {
-                        self.progress.count += 1;
-                        self.progress.task = task;
-                        self.emit('change');
-                        return self.progress;
-                    });
-                }, q());
-                return prev.then(q.allSettled.bind(null, map));
+                return prev.then(function () {
+                    var map = _.map(pack, function (task) {
+                        return q.nfcall(fs.ensureDir, path.dirname(task.out))
+                        .then(function () {
+                            self.progress.task = task;
+                            self.emit('change');
+                            return self.progress;
+                        })
+                        .then(q.nfcall.bind(null, fs.copy, task.in, task.out))
+                        .then(function () {
+                            self.progress.count += 1;
+                            self.emit('change');
+                            return self.progress;
+                        });
+                    }, q());
+                    return q.all(map);
+                });
             }, q())
+            .then(function () {
+                self.progress = {min: 0, max: 1, count: 1, task: null};
+                self.emit('change');
+            })
+            .delay(2000)
             .catch(function (err) {
                 util.logger.error(err.stack);
             })

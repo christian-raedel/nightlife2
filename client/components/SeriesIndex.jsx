@@ -66,7 +66,7 @@
                                                 <th width="15%">ID:&nbsp;{item.id || '?'}</th>
                                                 <th width="20%">Sprache:&nbsp;{this.getFlux().store('LanguageStore').getLanguage(item.language).name || '?'}</th>
                                                 <th width="45%">Sender:&nbsp;{item.network || '?'}</th>
-                                                <th width="20%">Erstausstrahlung:&nbsp;{item.firstAired || '?'}</th>
+                                                <th width="20%">Erstausstrahlung:&nbsp;{new Date(item.firstAired).getFullYear() || '?'}</th>
                                             </tr>
                                         </thead>
                                         <tbody>

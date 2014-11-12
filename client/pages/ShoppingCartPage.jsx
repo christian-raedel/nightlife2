@@ -44,7 +44,7 @@
                                                 <span className="glyphicon glyphicon-trash"></span>
                                             </button>
                                             <button type="button" className="btn btn-success"
-                                                onClick={this.getFlux().actions.runTasklist}>
+                                                onClick={this.getFlux().actions.fastRunTasklist}>
                                                 <span className="glyphicon glyphicon-play"></span>
                                             </button>
                                         </div>
