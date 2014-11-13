@@ -11,6 +11,8 @@
         , util            = remote.require('./client/util')
         , dialog          = remote.require('dialog');
 
+    var Mousetrap         = require('mousetrap');
+
     var ShoppingCartPage = React.createClass({
         mixins: [FluxMixin, StoreWatchMixin('ShoppingCartStore')],
         getStateFromFlux: function () {
@@ -19,6 +21,26 @@
                 shoppingCart: flux.store('ShoppingCartStore').getState(),
                 progress: flux.store('ShoppingCartStore').getProgress()
             };
+        },
+        componentDidMount: function () {
+            var self = this;
+            _.range(1, 10).map(function (key) {
+                Mousetrap.bind('ctrl+' + key, function () {
+                    if (self.state.shoppingCart[key - 1]) {
+                        self.openDirectory(self.state.shoppingCart[key - 1]);
+                    }
+                });
+            });
+            Mousetrap.bind('ctrl+s', function () {
+                if (self.state.shoppingCart.length && !self.state.progress.count) {
+                    self.getFlux().actions.fastRunTasklist();
+                }
+            });
+            Mousetrap.bind('ctrl+l', function () {
+                if (self.state.shoppingCart.length && !self.state.progress.count) {
+                    self.getFlux().actions.clearCartItems();
+                }
+            });
         },
         openDirectory: function (item, ev) {
             var self = this;
@@ -37,7 +59,7 @@
                             <div className="panel-title">
                                 <h2 className="col-md-10">Aufgaben auf Warenkorb anwenden:</h2>
                                 {
-                                    this.state.shoppingCart.length ?
+                                    this.state.shoppingCart.length && !this.state.progress.count ?
                                         <div className="btn-group pull-right">
                                             <button type="button" className="btn btn-success"
                                                 onClick={this.getFlux().actions.clearCartItems}>
@@ -62,11 +84,12 @@
                         </div>
                         <div className="panel-body">
                             <div className="progress">
-                                <div className="progress-bar progress-bar-success progress-bar-striped active" role="progressbar"
-                                    aria-valuenow={this.state.progress.count} aria-valuemin={this.state.progress.min}
-                                    aria-valuemax={this.state.progress.max} 
+                                <div className="progress-bar progress-bar-success progress-bar-striped" role="progressbar"
+                                    style={{width: Math.round(this.state.progress.finished * 100 / this.state.progress.max) + '%'}}>
+                                    <span>{Math.round(this.state.progress.finished * 100 / this.state.progress.max) + '%'}</span>
+                                </div>
+                                <div className="progress-bar progress-bar-warning progress-bar-striped active" role="progressbar"
                                     style={{width: Math.round(this.state.progress.count * 100 / this.state.progress.max) + '%'}}>
-                                    <span>{Math.round(this.state.progress.count * 100 / this.state.progress.max) + '%'}</span>
                                 </div>
                             </div>
                         </div>
@@ -75,11 +98,11 @@
                                 <table className="table">
                                     <tbody>
                                         <tr>
-                                            <td width="10%">Kopiere</td>
+                                            <td width="10%"><b>Kopiere</b></td>
                                             <td width="90%">{this.state.progress.task.in}</td>
                                         </tr>
                                         <tr>
-                                            <td width="10%">nach</td>
+                                            <td width="10%"><b>nach</b></td>
                                             <td width="90%">{this.state.progress.task.out}</td>
                                         </tr>
                                     </tbody>

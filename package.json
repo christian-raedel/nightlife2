@@ -38,6 +38,7 @@
     "less": "^1.7.5",
     "less-loader": "^0.7.7",
     "lodash": "^2.4.1",
+    "mousetrap": "0.0.1",
     "node-cconf": "git+https://github.com/christian-raedel/node-cconf",
     "node-clogger": "git+https://github.com/christian-raedel/node-clogger",
     "q": "^1.0.1",

@@ -6,7 +6,7 @@
         , engine = require('dna').createDNA()
         , client = require('tvdb-api-client')
         , path   = require('path')
-        , argv   = require('yargs').default('config', path.resolve(__dirname, '..', 'config.yml')).argv
+        , argv   = require('yargs').default('config', path.resolve(__dirname, '..', 'config.yml')).boolean('debug').parse(process.argv.slice(1))
         , dialog = require('dialog')
         , _      = require('lodash');
 
@@ -24,6 +24,12 @@
         }
     }
     module.exports.saveConf = saveConf;
+
+    logger.debug(argv);
+    if (argv.debug) {
+        logger.warn('running in debug mode; copy operations are disabled!');
+    }
+    module.exports.argv = argv;
 
     var re = /\^|\.|\/|\:|\0|\*|\?|\\|\"|<|>|\|/g;
     engine.use('escape', function (value) {

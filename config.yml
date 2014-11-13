@@ -4,4 +4,4 @@ filename: "{{basepath}}/{{series.name|escape}}/Staffel {{episode.season|number:2
 extensions: "mkv|avi|mp4"
 greetz: "Alles Liebe zum Geburtstag!"
 logo: "http://witze.net/teddyb%C3%A4r,rosen.gif"
-concurrentOperations: 5
+concurrentOperations: 2

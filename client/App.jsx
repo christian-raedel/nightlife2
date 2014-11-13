@@ -21,6 +21,8 @@
         , FluxMixin        = Fluxxor.FluxMixin(React)
         , StoreWatchMixin  = Fluxxor.StoreWatchMixin;
 
+    var Mousetrap          = require('mousetrap');
+
     var App = React.createClass({
         mixins: [FluxMixin, StoreWatchMixin('LanguageStore', 'ShoppingCartStore', 'SearchStore')],
         getStateFromFlux: function () {
@@ -30,6 +32,14 @@
                 shoppingCart: flux.store('ShoppingCartStore').getState(),
                 serieslist: flux.store('SearchStore').getState()
             };
+        },
+        componentDidMount: function () {
+            Mousetrap.bind('/', function () {
+                window.location.href = '#/search';
+            });
+            Mousetrap.bind('ctrl+w', function () {
+                window.location.href = '#/shopping-cart';
+            });
         },
         activateLink: function (ev) {
             $('ul.nav.navbar-nav>li').removeClass('active');
@@ -52,8 +62,7 @@
                                 </div>
                                 <div className="collapse navbar-collapse" id="navbar-collapse">
                                     <ul className="nav navbar-nav">
-                                        {/**<li className="active"><a href="#/"><span className="glyphicon glyphicon-cloud"></span>&nbsp;Start</a></li>**/}
-                                        <li className="active">
+                                        <li>
                                             <a href="#/search" onClick={this.activateLink}>
                                                 <span className="glyphicon glyphicon-search"></span>&nbsp;Suche
                                             </a>

@@ -38,9 +38,11 @@
             );
         },
         onAddCartItem: function (payload) {
-            this.cart.push(payload.item);
-            this.emit('change');
-            this.onSaveCartItems();
+            if (_.indexOf(this.cart, payload.item) === -1) {
+                this.cart.push(payload.item);
+                this.emit('change');
+                this.onSaveCartItems();
+            }
         },
         onRemoveCartItem: function (payload) {
             delete payload.item.tasklist;
@@ -163,7 +165,7 @@
                 return prev.concat(item.tasklist);
             }, [])
             .tap(function (map) {
-                self.progress = {min: 0, max: map.length, count: 0, task: null};
+                self.progress = {min: 0, max: map.length, count: 0, finished: 0, task: null};
             })
             .value();
             var backtick = new Backtick(tasklist, {limit: util.conf.getValue('concurrentOperations')})
@@ -171,15 +173,27 @@
                 util.logger.debug('packet:', pack);
                 return prev.then(function () {
                     var map = _.map(pack, function (task) {
-                        return q.nfcall(fs.ensureDir, path.dirname(task.out))
-                        .then(function () {
+                        return q.fcall(function () {
                             self.progress.task = task;
+                            if (self.progress.finished + pack.length >= self.progress.max) {
+                                self.progress.count = self.progress.max - self.progress.finished;
+                            } else {
+                                self.progress.count = pack.length;
+                            }
                             self.emit('change');
                             return self.progress;
                         })
-                        .then(q.nfcall.bind(null, fs.copy, task.in, task.out))
                         .then(function () {
-                            self.progress.count += 1;
+                            if (util.argv.debug) {
+                                util.logger.info('copying disabled per --debug param; simply waiting a few seconds...');
+                                return q().delay(2700);
+                            } else {
+                                return q.nfcall(fs.ensureDir, path.dirname(task.out))
+                                .then(q.nfcall.bind(null, fs.copy, task.in, task.out));
+                            }
+                        })
+                        .then(function () {
+                            self.progress.finished += 1;
                             self.emit('change');
                             return self.progress;
                         });
@@ -188,7 +202,7 @@
                 });
             }, q())
             .then(function () {
-                self.progress = {min: 0, max: 1, count: 1, task: null};
+                self.progress = {min: 0, max: 1, count: 0, finished: 1, task: null};
                 self.emit('change');
             })
             .delay(2000)
@@ -196,7 +210,7 @@
                 util.logger.error(err.stack);
             })
             .finally(function () {
-                self.progress = {min: 0, max: 1, count: 0, task: null};
+                self.progress = {min: 0, max: 1, count: 0, finished: 0, task: null};
                 self.cart = _.filter(self.cart, function (item) {
                     return !_.isArray(item.tasklist);
                 });

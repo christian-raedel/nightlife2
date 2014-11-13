@@ -50,7 +50,7 @@
                             <div className="row">
                                 <div className="col-md-12">
                                     <div className="input-group">
-                                        <input ref="query" type="text" className="form-control" placeholder="Serienname"
+                                        <input ref="query" type="text" className="form-control mousetrap" placeholder="Serienname"
                                             onKeyPress={this.handleKeyPress} onChange={this.queryChange} />
                                         <span className="input-group-btn">
                                             <button className="btn btn-success" type="button" onClick={this.searchSeries}>

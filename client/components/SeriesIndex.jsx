@@ -12,6 +12,8 @@
         , FluxMixin       = Fluxxor.FluxMixin(React)
         , StoreWatchMixin = Fluxxor.StoreWatchMixin;
 
+    var Mousetrap         = require('mousetrap');
+
     var SeriesIndex = React.createClass({
         mixins: [FluxMixin, StoreWatchMixin('LanguageStore', 'ShoppingCartStore')],
         getStateFromFlux: function () {
@@ -23,6 +25,16 @@
         },
         componentWillMount: function () {
             this.getFlux().actions.loadLanguageItems();
+        },
+        componentDidMount: function () {
+            var self = this;
+            _.range(1, 10).map(function (key) {
+                Mousetrap.bind('ctrl+' + key, function () {
+                    if (self.props.data[key - 1]) {
+                        self.getFlux().actions.addCartItem(self.props.data[key - 1]);
+                    }
+                });
+            });
         },
         showDetails: function (item) {
             var url = util.engine.render('http://thetvdb.com/index.php?tab=series&id={{seriesId}}&lid={{languageId}}', {

@@ -67,6 +67,8 @@
 	        , FluxMixin        = Fluxxor.FluxMixin(React)
 	        , StoreWatchMixin  = Fluxxor.StoreWatchMixin;
 
+	    var Mousetrap          = __webpack_require__(288);
+
 	    var App = React.createClass({displayName: 'App',
 	        mixins: [FluxMixin, StoreWatchMixin('LanguageStore', 'ShoppingCartStore', 'SearchStore')],
 	        getStateFromFlux: function () {
@@ -76,6 +78,14 @@
 	                shoppingCart: flux.store('ShoppingCartStore').getState(),
 	                serieslist: flux.store('SearchStore').getState()
 	            };
+	        },
+	        componentDidMount: function () {
+	            Mousetrap.bind('/', function () {
+	                window.location.href = '#/search';
+	            });
+	            Mousetrap.bind('ctrl+w', function () {
+	                window.location.href = '#/shopping-cart';
+	            });
 	        },
 	        activateLink: function (ev) {
 	            $('ul.nav.navbar-nav>li').removeClass('active');
@@ -98,8 +108,7 @@
 	                                ), 
 	                                React.createElement("div", {className: "collapse navbar-collapse", id: "navbar-collapse"}, 
 	                                    React.createElement("ul", {className: "nav navbar-nav"}, 
-	                                        /**<li className="active"><a href="#/"><span className="glyphicon glyphicon-cloud"></span>&nbsp;Start</a></li>**/
-	                                        React.createElement("li", {className: "active"}, 
+	                                        React.createElement("li", null, 
 	                                            React.createElement("a", {href: "#/search", onClick: this.activateLink}, 
 	                                                React.createElement("span", {className: "glyphicon glyphicon-search"}), " Suche"
 	                                            )
@@ -156,13 +165,16 @@
 	    var Style  = __webpack_require__(11);
 
 	    var HomePage = React.createClass({displayName: 'HomePage',
+	        componentDidMount: function () {
+	            this.refs.startButton.getDOMNode().focus();
+	        },
 	        render: function () {
 	            return (
 	                React.createElement("div", {className: "jumbotron"}, 
 	                    React.createElement("h1", {className: "greetz"}, util.conf.getValue('greetz')), 
 	                    React.createElement("div", {className: "pull-right"}, 
 	                        React.createElement("img", {className: "img-circle", src: util.conf.getValue('logo')}), 
-	                        React.createElement("p", null, React.createElement("a", {className: "btn btn-success", href: "#/search", role: "button"}, "Los gehts!"))
+	                        React.createElement("p", null, React.createElement("a", {ref: "startButton", className: "btn btn-success", href: "#/search", role: "button"}, "Los gehts!"))
 	                    )
 	                )
 	            );
@@ -230,7 +242,7 @@
 	                            React.createElement("div", {className: "row"}, 
 	                                React.createElement("div", {className: "col-md-12"}, 
 	                                    React.createElement("div", {className: "input-group"}, 
-	                                        React.createElement("input", {ref: "query", type: "text", className: "form-control", placeholder: "Serienname", 
+	                                        React.createElement("input", {ref: "query", type: "text", className: "form-control mousetrap", placeholder: "Serienname", 
 	                                            onKeyPress: this.handleKeyPress, onChange: this.queryChange}), 
 	                                        React.createElement("span", {className: "input-group-btn"}, 
 	                                            React.createElement("button", {className: "btn btn-success", type: "button", onClick: this.searchSeries}, 
@@ -276,6 +288,8 @@
 	        , util            = remote.require('./client/util')
 	        , dialog          = remote.require('dialog');
 
+	    var Mousetrap         = __webpack_require__(288);
+
 	    var ShoppingCartPage = React.createClass({displayName: 'ShoppingCartPage',
 	        mixins: [FluxMixin, StoreWatchMixin('ShoppingCartStore')],
 	        getStateFromFlux: function () {
@@ -284,6 +298,26 @@
 	                shoppingCart: flux.store('ShoppingCartStore').getState(),
 	                progress: flux.store('ShoppingCartStore').getProgress()
 	            };
+	        },
+	        componentDidMount: function () {
+	            var self = this;
+	            _.range(1, 10).map(function (key) {
+	                Mousetrap.bind('ctrl+' + key, function () {
+	                    if (self.state.shoppingCart[key - 1]) {
+	                        self.openDirectory(self.state.shoppingCart[key - 1]);
+	                    }
+	                });
+	            });
+	            Mousetrap.bind('ctrl+s', function () {
+	                if (self.state.shoppingCart.length && !self.state.progress.count) {
+	                    self.getFlux().actions.fastRunTasklist();
+	                }
+	            });
+	            Mousetrap.bind('ctrl+l', function () {
+	                if (self.state.shoppingCart.length && !self.state.progress.count) {
+	                    self.getFlux().actions.clearCartItems();
+	                }
+	            });
 	        },
 	        openDirectory: function (item, ev) {
 	            var self = this;
@@ -302,7 +336,7 @@
 	                            React.createElement("div", {className: "panel-title"}, 
 	                                React.createElement("h2", {className: "col-md-10"}, "Aufgaben auf Warenkorb anwenden:"), 
 	                                
-	                                    this.state.shoppingCart.length ?
+	                                    this.state.shoppingCart.length && !this.state.progress.count ?
 	                                        React.createElement("div", {className: "btn-group pull-right"}, 
 	                                            React.createElement("button", {type: "button", className: "btn btn-success", 
 	                                                onClick: this.getFlux().actions.clearCartItems}, 
@@ -327,11 +361,12 @@
 	                        ), 
 	                        React.createElement("div", {className: "panel-body"}, 
 	                            React.createElement("div", {className: "progress"}, 
-	                                React.createElement("div", {className: "progress-bar progress-bar-success progress-bar-striped active", role: "progressbar", 
-	                                    'aria-valuenow': this.state.progress.count, 'aria-valuemin': this.state.progress.min, 
-	                                    'aria-valuemax': this.state.progress.max, 
-	                                    style: {width: Math.round(this.state.progress.count * 100 / this.state.progress.max) + '%'}}, 
-	                                    React.createElement("span", null, Math.round(this.state.progress.count * 100 / this.state.progress.max) + '%')
+	                                React.createElement("div", {className: "progress-bar progress-bar-success progress-bar-striped", role: "progressbar", 
+	                                    style: {width: Math.round(this.state.progress.finished * 100 / this.state.progress.max) + '%'}}, 
+	                                    React.createElement("span", null, Math.round(this.state.progress.finished * 100 / this.state.progress.max) + '%')
+	                                ), 
+	                                React.createElement("div", {className: "progress-bar progress-bar-warning progress-bar-striped active", role: "progressbar", 
+	                                    style: {width: Math.round(this.state.progress.count * 100 / this.state.progress.max) + '%'}}
 	                                )
 	                            )
 	                        ), 
@@ -340,11 +375,11 @@
 	                                React.createElement("table", {className: "table"}, 
 	                                    React.createElement("tbody", null, 
 	                                        React.createElement("tr", null, 
-	                                            React.createElement("td", {width: "10%"}, "Kopiere"), 
+	                                            React.createElement("td", {width: "10%"}, React.createElement("b", null, "Kopiere")), 
 	                                            React.createElement("td", {width: "90%"}, this.state.progress.task.in)
 	                                        ), 
 	                                        React.createElement("tr", null, 
-	                                            React.createElement("td", {width: "10%"}, "nach"), 
+	                                            React.createElement("td", {width: "10%"}, React.createElement("b", null, "nach")), 
 	                                            React.createElement("td", {width: "90%"}, this.state.progress.task.out)
 	                                        )
 	                                    )
@@ -614,6 +649,8 @@
 	        , FluxMixin       = Fluxxor.FluxMixin(React)
 	        , StoreWatchMixin = Fluxxor.StoreWatchMixin;
 
+	    var Mousetrap         = __webpack_require__(288);
+
 	    var SeriesIndex = React.createClass({displayName: 'SeriesIndex',
 	        mixins: [FluxMixin, StoreWatchMixin('LanguageStore', 'ShoppingCartStore')],
 	        getStateFromFlux: function () {
@@ -625,6 +662,16 @@
 	        },
 	        componentWillMount: function () {
 	            this.getFlux().actions.loadLanguageItems();
+	        },
+	        componentDidMount: function () {
+	            var self = this;
+	            _.range(1, 10).map(function (key) {
+	                Mousetrap.bind('ctrl+' + key, function () {
+	                    if (self.props.data[key - 1]) {
+	                        self.getFlux().actions.addCartItem(self.props.data[key - 1]);
+	                    }
+	                });
+	            });
 	        },
 	        showDetails: function (item) {
 	            var url = util.engine.render('http://thetvdb.com/index.php?tab=series&id={{seriesId}}&lid={{languageId}}', {
@@ -863,9 +910,11 @@
 	            );
 	        },
 	        onAddCartItem: function (payload) {
-	            this.cart.push(payload.item);
-	            this.emit('change');
-	            this.onSaveCartItems();
+	            if (_.indexOf(this.cart, payload.item) === -1) {
+	                this.cart.push(payload.item);
+	                this.emit('change');
+	                this.onSaveCartItems();
+	            }
 	        },
 	        onRemoveCartItem: function (payload) {
 	            delete payload.item.tasklist;
@@ -988,7 +1037,7 @@
 	                return prev.concat(item.tasklist);
 	            }, [])
 	            .tap(function (map) {
-	                self.progress = {min: 0, max: map.length, count: 0, task: null};
+	                self.progress = {min: 0, max: map.length, count: 0, finished: 0, task: null};
 	            })
 	            .value();
 	            var backtick = new Backtick(tasklist, {limit: util.conf.getValue('concurrentOperations')})
@@ -996,15 +1045,27 @@
 	                util.logger.debug('packet:', pack);
 	                return prev.then(function () {
 	                    var map = _.map(pack, function (task) {
-	                        return q.nfcall(fs.ensureDir, path.dirname(task.out))
-	                        .then(function () {
+	                        return q.fcall(function () {
 	                            self.progress.task = task;
+	                            if (self.progress.finished + pack.length >= self.progress.max) {
+	                                self.progress.count = self.progress.max - self.progress.finished;
+	                            } else {
+	                                self.progress.count = pack.length;
+	                            }
 	                            self.emit('change');
 	                            return self.progress;
 	                        })
-	                        .then(q.nfcall.bind(null, fs.copy, task.in, task.out))
 	                        .then(function () {
-	                            self.progress.count += 1;
+	                            if (util.argv.debug) {
+	                                util.logger.info('copying disabled per --debug param; simply waiting a few seconds...');
+	                                return q().delay(2700);
+	                            } else {
+	                                return q.nfcall(fs.ensureDir, path.dirname(task.out))
+	                                .then(q.nfcall.bind(null, fs.copy, task.in, task.out));
+	                            }
+	                        })
+	                        .then(function () {
+	                            self.progress.finished += 1;
 	                            self.emit('change');
 	                            return self.progress;
 	                        });
@@ -1013,7 +1074,7 @@
 	                });
 	            }, q())
 	            .then(function () {
-	                self.progress = {min: 0, max: 1, count: 1, task: null};
+	                self.progress = {min: 0, max: 1, count: 0, finished: 1, task: null};
 	                self.emit('change');
 	            })
 	            .delay(2000)
@@ -1021,7 +1082,7 @@
 	                util.logger.error(err.stack);
 	            })
 	            .finally(function () {
-	                self.progress = {min: 0, max: 1, count: 0, task: null};
+	                self.progress = {min: 0, max: 1, count: 0, finished: 0, task: null};
 	                self.cart = _.filter(self.cart, function (item) {
 	                    return !_.isArray(item.tasklist);
 	                });
@@ -1394,13 +1455,13 @@
 	var _clone = __webpack_require__(71),
 	    _mapValues = __webpack_require__(72),
 	    _forOwn = __webpack_require__(73),
-	    _intersection = __webpack_require__(79),
-	    _keys = __webpack_require__(74),
-	    _map = __webpack_require__(75),
-	    _each = __webpack_require__(76),
-	    _size = __webpack_require__(77),
-	    _findKey = __webpack_require__(78),
-	    _uniq = __webpack_require__(83);
+	    _intersection = __webpack_require__(74),
+	    _keys = __webpack_require__(75),
+	    _map = __webpack_require__(76),
+	    _each = __webpack_require__(77),
+	    _size = __webpack_require__(78),
+	    _findKey = __webpack_require__(79),
+	    _uniq = __webpack_require__(80);
 
 	var Dispatcher = function(stores) {
 	  this.stores = {};
@@ -1544,10 +1605,10 @@
 	var EventEmitter = __webpack_require__(126),
 	    inherits = __webpack_require__(138),
 	    objectPath = __webpack_require__(127),
-	    _each = __webpack_require__(76),
-	    _reduce = __webpack_require__(80),
-	    _isFunction = __webpack_require__(81),
-	    _isString = __webpack_require__(82);
+	    _each = __webpack_require__(77),
+	    _reduce = __webpack_require__(81),
+	    _isFunction = __webpack_require__(82),
+	    _isString = __webpack_require__(83);
 
 	var Dispatcher = __webpack_require__(19);
 
@@ -1740,7 +1801,7 @@
 /* 23 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var _each = __webpack_require__(76);
+	var _each = __webpack_require__(77);
 
 	var StoreWatchMixin = function() {
 	  var storeNames = Array.prototype.slice.call(arguments);
@@ -1784,8 +1845,8 @@
 /* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var _each = __webpack_require__(76),
-	    _isFunction = __webpack_require__(81),
+	var _each = __webpack_require__(77),
+	    _isFunction = __webpack_require__(82),
 	    Store = __webpack_require__(50),
 	    inherits = __webpack_require__(138);
 
@@ -11610,7 +11671,7 @@
 
 	var EventEmitter = __webpack_require__(126),
 	    inherits = __webpack_require__(138),
-	    _isFunction = __webpack_require__(81),
+	    _isFunction = __webpack_require__(82),
 	    _isObject = __webpack_require__(128);
 
 	function Store(dispatcher) {
@@ -15518,8 +15579,8 @@
 	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 	 * Available under MIT license <http://lodash.com/license>
 	 */
-	var baseClone = __webpack_require__(146),
-	    baseCreateCallback = __webpack_require__(147);
+	var baseClone = __webpack_require__(145),
+	    baseCreateCallback = __webpack_require__(146);
 
 	/**
 	 * Creates a clone of `value`. If `isDeep` is `true` nested objects will also
@@ -15587,7 +15648,7 @@
 	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 	 * Available under MIT license <http://lodash.com/license>
 	 */
-	var createCallback = __webpack_require__(145),
+	var createCallback = __webpack_require__(147),
 	    forOwn = __webpack_require__(73);
 
 	/**
@@ -15651,9 +15712,9 @@
 	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 	 * Available under MIT license <http://lodash.com/license>
 	 */
-	var baseCreateCallback = __webpack_require__(147),
-	    keys = __webpack_require__(74),
-	    objectTypes = __webpack_require__(150);
+	var baseCreateCallback = __webpack_require__(146),
+	    keys = __webpack_require__(75),
+	    objectTypes = __webpack_require__(148);
 
 	/**
 	 * Iterates over own enumerable properties of an object, executing the callback
@@ -15697,298 +15758,6 @@
 
 /***/ },
 /* 74 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
-	 * Build: `lodash modularize modern exports="node" -o ./modern/`
-	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
-	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
-	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-	 * Available under MIT license <http://lodash.com/license>
-	 */
-	var isNative = __webpack_require__(148),
-	    isObject = __webpack_require__(128),
-	    shimKeys = __webpack_require__(149);
-
-	/* Native method shortcuts for methods with the same name as other `lodash` methods */
-	var nativeKeys = isNative(nativeKeys = Object.keys) && nativeKeys;
-
-	/**
-	 * Creates an array composed of the own enumerable property names of an object.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @category Objects
-	 * @param {Object} object The object to inspect.
-	 * @returns {Array} Returns an array of property names.
-	 * @example
-	 *
-	 * _.keys({ 'one': 1, 'two': 2, 'three': 3 });
-	 * // => ['one', 'two', 'three'] (property order is not guaranteed across environments)
-	 */
-	var keys = !nativeKeys ? shimKeys : function(object) {
-	  if (!isObject(object)) {
-	    return [];
-	  }
-	  return nativeKeys(object);
-	};
-
-	module.exports = keys;
-
-
-/***/ },
-/* 75 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
-	 * Build: `lodash modularize modern exports="node" -o ./modern/`
-	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
-	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
-	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-	 * Available under MIT license <http://lodash.com/license>
-	 */
-	var createCallback = __webpack_require__(145),
-	    forOwn = __webpack_require__(73);
-
-	/**
-	 * Creates an array of values by running each element in the collection
-	 * through the callback. The callback is bound to `thisArg` and invoked with
-	 * three arguments; (value, index|key, collection).
-	 *
-	 * If a property name is provided for `callback` the created "_.pluck" style
-	 * callback will return the property value of the given element.
-	 *
-	 * If an object is provided for `callback` the created "_.where" style callback
-	 * will return `true` for elements that have the properties of the given object,
-	 * else `false`.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @alias collect
-	 * @category Collections
-	 * @param {Array|Object|string} collection The collection to iterate over.
-	 * @param {Function|Object|string} [callback=identity] The function called
-	 *  per iteration. If a property name or object is provided it will be used
-	 *  to create a "_.pluck" or "_.where" style callback, respectively.
-	 * @param {*} [thisArg] The `this` binding of `callback`.
-	 * @returns {Array} Returns a new array of the results of each `callback` execution.
-	 * @example
-	 *
-	 * _.map([1, 2, 3], function(num) { return num * 3; });
-	 * // => [3, 6, 9]
-	 *
-	 * _.map({ 'one': 1, 'two': 2, 'three': 3 }, function(num) { return num * 3; });
-	 * // => [3, 6, 9] (property order is not guaranteed across environments)
-	 *
-	 * var characters = [
-	 *   { 'name': 'barney', 'age': 36 },
-	 *   { 'name': 'fred',   'age': 40 }
-	 * ];
-	 *
-	 * // using "_.pluck" callback shorthand
-	 * _.map(characters, 'name');
-	 * // => ['barney', 'fred']
-	 */
-	function map(collection, callback, thisArg) {
-	  var index = -1,
-	      length = collection ? collection.length : 0;
-
-	  callback = createCallback(callback, thisArg, 3);
-	  if (typeof length == 'number') {
-	    var result = Array(length);
-	    while (++index < length) {
-	      result[index] = callback(collection[index], index, collection);
-	    }
-	  } else {
-	    result = [];
-	    forOwn(collection, function(value, key, collection) {
-	      result[++index] = callback(value, key, collection);
-	    });
-	  }
-	  return result;
-	}
-
-	module.exports = map;
-
-
-/***/ },
-/* 76 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
-	 * Build: `lodash modularize modern exports="node" -o ./modern/`
-	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
-	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
-	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-	 * Available under MIT license <http://lodash.com/license>
-	 */
-	var baseCreateCallback = __webpack_require__(147),
-	    forOwn = __webpack_require__(73);
-
-	/**
-	 * Iterates over elements of a collection, executing the callback for each
-	 * element. The callback is bound to `thisArg` and invoked with three arguments;
-	 * (value, index|key, collection). Callbacks may exit iteration early by
-	 * explicitly returning `false`.
-	 *
-	 * Note: As with other "Collections" methods, objects with a `length` property
-	 * are iterated like arrays. To avoid this behavior `_.forIn` or `_.forOwn`
-	 * may be used for object iteration.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @alias each
-	 * @category Collections
-	 * @param {Array|Object|string} collection The collection to iterate over.
-	 * @param {Function} [callback=identity] The function called per iteration.
-	 * @param {*} [thisArg] The `this` binding of `callback`.
-	 * @returns {Array|Object|string} Returns `collection`.
-	 * @example
-	 *
-	 * _([1, 2, 3]).forEach(function(num) { console.log(num); }).join(',');
-	 * // => logs each number and returns '1,2,3'
-	 *
-	 * _.forEach({ 'one': 1, 'two': 2, 'three': 3 }, function(num) { console.log(num); });
-	 * // => logs each number and returns the object (property order is not guaranteed across environments)
-	 */
-	function forEach(collection, callback, thisArg) {
-	  var index = -1,
-	      length = collection ? collection.length : 0;
-
-	  callback = callback && typeof thisArg == 'undefined' ? callback : baseCreateCallback(callback, thisArg, 3);
-	  if (typeof length == 'number') {
-	    while (++index < length) {
-	      if (callback(collection[index], index, collection) === false) {
-	        break;
-	      }
-	    }
-	  } else {
-	    forOwn(collection, callback);
-	  }
-	  return collection;
-	}
-
-	module.exports = forEach;
-
-
-/***/ },
-/* 77 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
-	 * Build: `lodash modularize modern exports="node" -o ./modern/`
-	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
-	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
-	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-	 * Available under MIT license <http://lodash.com/license>
-	 */
-	var keys = __webpack_require__(74);
-
-	/**
-	 * Gets the size of the `collection` by returning `collection.length` for arrays
-	 * and array-like objects or the number of own enumerable properties for objects.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @category Collections
-	 * @param {Array|Object|string} collection The collection to inspect.
-	 * @returns {number} Returns `collection.length` or number of own enumerable properties.
-	 * @example
-	 *
-	 * _.size([1, 2]);
-	 * // => 2
-	 *
-	 * _.size({ 'one': 1, 'two': 2, 'three': 3 });
-	 * // => 3
-	 *
-	 * _.size('pebbles');
-	 * // => 7
-	 */
-	function size(collection) {
-	  var length = collection ? collection.length : 0;
-	  return typeof length == 'number' ? length : keys(collection).length;
-	}
-
-	module.exports = size;
-
-
-/***/ },
-/* 78 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
-	 * Build: `lodash modularize modern exports="node" -o ./modern/`
-	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
-	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
-	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-	 * Available under MIT license <http://lodash.com/license>
-	 */
-	var createCallback = __webpack_require__(145),
-	    forOwn = __webpack_require__(73);
-
-	/**
-	 * This method is like `_.findIndex` except that it returns the key of the
-	 * first element that passes the callback check, instead of the element itself.
-	 *
-	 * If a property name is provided for `callback` the created "_.pluck" style
-	 * callback will return the property value of the given element.
-	 *
-	 * If an object is provided for `callback` the created "_.where" style callback
-	 * will return `true` for elements that have the properties of the given object,
-	 * else `false`.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @category Objects
-	 * @param {Object} object The object to search.
-	 * @param {Function|Object|string} [callback=identity] The function called per
-	 *  iteration. If a property name or object is provided it will be used to
-	 *  create a "_.pluck" or "_.where" style callback, respectively.
-	 * @param {*} [thisArg] The `this` binding of `callback`.
-	 * @returns {string|undefined} Returns the key of the found element, else `undefined`.
-	 * @example
-	 *
-	 * var characters = {
-	 *   'barney': {  'age': 36, 'blocked': false },
-	 *   'fred': {    'age': 40, 'blocked': true },
-	 *   'pebbles': { 'age': 1,  'blocked': false }
-	 * };
-	 *
-	 * _.findKey(characters, function(chr) {
-	 *   return chr.age < 40;
-	 * });
-	 * // => 'barney' (property order is not guaranteed across environments)
-	 *
-	 * // using "_.where" callback shorthand
-	 * _.findKey(characters, { 'age': 1 });
-	 * // => 'pebbles'
-	 *
-	 * // using "_.pluck" callback shorthand
-	 * _.findKey(characters, 'blocked');
-	 * // => 'fred'
-	 */
-	function findKey(object, callback, thisArg) {
-	  var result;
-	  callback = createCallback(callback, thisArg, 3);
-	  forOwn(object, function(value, key, object) {
-	    if (callback(value, key, object)) {
-	      result = key;
-	      return false;
-	    }
-	  });
-	  return result;
-	}
-
-	module.exports = findKey;
-
-
-/***/ },
-/* 79 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -16077,6 +15846,298 @@
 
 
 /***/ },
+/* 75 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+	 * Build: `lodash modularize modern exports="node" -o ./modern/`
+	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	 * Available under MIT license <http://lodash.com/license>
+	 */
+	var isNative = __webpack_require__(149),
+	    isObject = __webpack_require__(128),
+	    shimKeys = __webpack_require__(150);
+
+	/* Native method shortcuts for methods with the same name as other `lodash` methods */
+	var nativeKeys = isNative(nativeKeys = Object.keys) && nativeKeys;
+
+	/**
+	 * Creates an array composed of the own enumerable property names of an object.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @category Objects
+	 * @param {Object} object The object to inspect.
+	 * @returns {Array} Returns an array of property names.
+	 * @example
+	 *
+	 * _.keys({ 'one': 1, 'two': 2, 'three': 3 });
+	 * // => ['one', 'two', 'three'] (property order is not guaranteed across environments)
+	 */
+	var keys = !nativeKeys ? shimKeys : function(object) {
+	  if (!isObject(object)) {
+	    return [];
+	  }
+	  return nativeKeys(object);
+	};
+
+	module.exports = keys;
+
+
+/***/ },
+/* 76 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+	 * Build: `lodash modularize modern exports="node" -o ./modern/`
+	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	 * Available under MIT license <http://lodash.com/license>
+	 */
+	var createCallback = __webpack_require__(147),
+	    forOwn = __webpack_require__(73);
+
+	/**
+	 * Creates an array of values by running each element in the collection
+	 * through the callback. The callback is bound to `thisArg` and invoked with
+	 * three arguments; (value, index|key, collection).
+	 *
+	 * If a property name is provided for `callback` the created "_.pluck" style
+	 * callback will return the property value of the given element.
+	 *
+	 * If an object is provided for `callback` the created "_.where" style callback
+	 * will return `true` for elements that have the properties of the given object,
+	 * else `false`.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @alias collect
+	 * @category Collections
+	 * @param {Array|Object|string} collection The collection to iterate over.
+	 * @param {Function|Object|string} [callback=identity] The function called
+	 *  per iteration. If a property name or object is provided it will be used
+	 *  to create a "_.pluck" or "_.where" style callback, respectively.
+	 * @param {*} [thisArg] The `this` binding of `callback`.
+	 * @returns {Array} Returns a new array of the results of each `callback` execution.
+	 * @example
+	 *
+	 * _.map([1, 2, 3], function(num) { return num * 3; });
+	 * // => [3, 6, 9]
+	 *
+	 * _.map({ 'one': 1, 'two': 2, 'three': 3 }, function(num) { return num * 3; });
+	 * // => [3, 6, 9] (property order is not guaranteed across environments)
+	 *
+	 * var characters = [
+	 *   { 'name': 'barney', 'age': 36 },
+	 *   { 'name': 'fred',   'age': 40 }
+	 * ];
+	 *
+	 * // using "_.pluck" callback shorthand
+	 * _.map(characters, 'name');
+	 * // => ['barney', 'fred']
+	 */
+	function map(collection, callback, thisArg) {
+	  var index = -1,
+	      length = collection ? collection.length : 0;
+
+	  callback = createCallback(callback, thisArg, 3);
+	  if (typeof length == 'number') {
+	    var result = Array(length);
+	    while (++index < length) {
+	      result[index] = callback(collection[index], index, collection);
+	    }
+	  } else {
+	    result = [];
+	    forOwn(collection, function(value, key, collection) {
+	      result[++index] = callback(value, key, collection);
+	    });
+	  }
+	  return result;
+	}
+
+	module.exports = map;
+
+
+/***/ },
+/* 77 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+	 * Build: `lodash modularize modern exports="node" -o ./modern/`
+	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	 * Available under MIT license <http://lodash.com/license>
+	 */
+	var baseCreateCallback = __webpack_require__(146),
+	    forOwn = __webpack_require__(73);
+
+	/**
+	 * Iterates over elements of a collection, executing the callback for each
+	 * element. The callback is bound to `thisArg` and invoked with three arguments;
+	 * (value, index|key, collection). Callbacks may exit iteration early by
+	 * explicitly returning `false`.
+	 *
+	 * Note: As with other "Collections" methods, objects with a `length` property
+	 * are iterated like arrays. To avoid this behavior `_.forIn` or `_.forOwn`
+	 * may be used for object iteration.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @alias each
+	 * @category Collections
+	 * @param {Array|Object|string} collection The collection to iterate over.
+	 * @param {Function} [callback=identity] The function called per iteration.
+	 * @param {*} [thisArg] The `this` binding of `callback`.
+	 * @returns {Array|Object|string} Returns `collection`.
+	 * @example
+	 *
+	 * _([1, 2, 3]).forEach(function(num) { console.log(num); }).join(',');
+	 * // => logs each number and returns '1,2,3'
+	 *
+	 * _.forEach({ 'one': 1, 'two': 2, 'three': 3 }, function(num) { console.log(num); });
+	 * // => logs each number and returns the object (property order is not guaranteed across environments)
+	 */
+	function forEach(collection, callback, thisArg) {
+	  var index = -1,
+	      length = collection ? collection.length : 0;
+
+	  callback = callback && typeof thisArg == 'undefined' ? callback : baseCreateCallback(callback, thisArg, 3);
+	  if (typeof length == 'number') {
+	    while (++index < length) {
+	      if (callback(collection[index], index, collection) === false) {
+	        break;
+	      }
+	    }
+	  } else {
+	    forOwn(collection, callback);
+	  }
+	  return collection;
+	}
+
+	module.exports = forEach;
+
+
+/***/ },
+/* 78 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+	 * Build: `lodash modularize modern exports="node" -o ./modern/`
+	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	 * Available under MIT license <http://lodash.com/license>
+	 */
+	var keys = __webpack_require__(75);
+
+	/**
+	 * Gets the size of the `collection` by returning `collection.length` for arrays
+	 * and array-like objects or the number of own enumerable properties for objects.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @category Collections
+	 * @param {Array|Object|string} collection The collection to inspect.
+	 * @returns {number} Returns `collection.length` or number of own enumerable properties.
+	 * @example
+	 *
+	 * _.size([1, 2]);
+	 * // => 2
+	 *
+	 * _.size({ 'one': 1, 'two': 2, 'three': 3 });
+	 * // => 3
+	 *
+	 * _.size('pebbles');
+	 * // => 7
+	 */
+	function size(collection) {
+	  var length = collection ? collection.length : 0;
+	  return typeof length == 'number' ? length : keys(collection).length;
+	}
+
+	module.exports = size;
+
+
+/***/ },
+/* 79 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+	 * Build: `lodash modularize modern exports="node" -o ./modern/`
+	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	 * Available under MIT license <http://lodash.com/license>
+	 */
+	var createCallback = __webpack_require__(147),
+	    forOwn = __webpack_require__(73);
+
+	/**
+	 * This method is like `_.findIndex` except that it returns the key of the
+	 * first element that passes the callback check, instead of the element itself.
+	 *
+	 * If a property name is provided for `callback` the created "_.pluck" style
+	 * callback will return the property value of the given element.
+	 *
+	 * If an object is provided for `callback` the created "_.where" style callback
+	 * will return `true` for elements that have the properties of the given object,
+	 * else `false`.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @category Objects
+	 * @param {Object} object The object to search.
+	 * @param {Function|Object|string} [callback=identity] The function called per
+	 *  iteration. If a property name or object is provided it will be used to
+	 *  create a "_.pluck" or "_.where" style callback, respectively.
+	 * @param {*} [thisArg] The `this` binding of `callback`.
+	 * @returns {string|undefined} Returns the key of the found element, else `undefined`.
+	 * @example
+	 *
+	 * var characters = {
+	 *   'barney': {  'age': 36, 'blocked': false },
+	 *   'fred': {    'age': 40, 'blocked': true },
+	 *   'pebbles': { 'age': 1,  'blocked': false }
+	 * };
+	 *
+	 * _.findKey(characters, function(chr) {
+	 *   return chr.age < 40;
+	 * });
+	 * // => 'barney' (property order is not guaranteed across environments)
+	 *
+	 * // using "_.where" callback shorthand
+	 * _.findKey(characters, { 'age': 1 });
+	 * // => 'pebbles'
+	 *
+	 * // using "_.pluck" callback shorthand
+	 * _.findKey(characters, 'blocked');
+	 * // => 'fred'
+	 */
+	function findKey(object, callback, thisArg) {
+	  var result;
+	  callback = createCallback(callback, thisArg, 3);
+	  forOwn(object, function(value, key, object) {
+	    if (callback(value, key, object)) {
+	      result = key;
+	      return false;
+	    }
+	  });
+	  return result;
+	}
+
+	module.exports = findKey;
+
+
+/***/ },
 /* 80 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -16088,7 +16149,82 @@
 	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 	 * Available under MIT license <http://lodash.com/license>
 	 */
-	var createCallback = __webpack_require__(145),
+	var baseUniq = __webpack_require__(160),
+	    createCallback = __webpack_require__(147);
+
+	/**
+	 * Creates a duplicate-value-free version of an array using strict equality
+	 * for comparisons, i.e. `===`. If the array is sorted, providing
+	 * `true` for `isSorted` will use a faster algorithm. If a callback is provided
+	 * each element of `array` is passed through the callback before uniqueness
+	 * is computed. The callback is bound to `thisArg` and invoked with three
+	 * arguments; (value, index, array).
+	 *
+	 * If a property name is provided for `callback` the created "_.pluck" style
+	 * callback will return the property value of the given element.
+	 *
+	 * If an object is provided for `callback` the created "_.where" style callback
+	 * will return `true` for elements that have the properties of the given object,
+	 * else `false`.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @alias unique
+	 * @category Arrays
+	 * @param {Array} array The array to process.
+	 * @param {boolean} [isSorted=false] A flag to indicate that `array` is sorted.
+	 * @param {Function|Object|string} [callback=identity] The function called
+	 *  per iteration. If a property name or object is provided it will be used
+	 *  to create a "_.pluck" or "_.where" style callback, respectively.
+	 * @param {*} [thisArg] The `this` binding of `callback`.
+	 * @returns {Array} Returns a duplicate-value-free array.
+	 * @example
+	 *
+	 * _.uniq([1, 2, 1, 3, 1]);
+	 * // => [1, 2, 3]
+	 *
+	 * _.uniq([1, 1, 2, 2, 3], true);
+	 * // => [1, 2, 3]
+	 *
+	 * _.uniq(['A', 'b', 'C', 'a', 'B', 'c'], function(letter) { return letter.toLowerCase(); });
+	 * // => ['A', 'b', 'C']
+	 *
+	 * _.uniq([1, 2.5, 3, 1.5, 2, 3.5], function(num) { return this.floor(num); }, Math);
+	 * // => [1, 2.5, 3]
+	 *
+	 * // using "_.pluck" callback shorthand
+	 * _.uniq([{ 'x': 1 }, { 'x': 2 }, { 'x': 1 }], 'x');
+	 * // => [{ 'x': 1 }, { 'x': 2 }]
+	 */
+	function uniq(array, isSorted, callback, thisArg) {
+	  // juggle arguments
+	  if (typeof isSorted != 'boolean' && isSorted != null) {
+	    thisArg = callback;
+	    callback = (typeof isSorted != 'function' && thisArg && thisArg[isSorted] === array) ? null : isSorted;
+	    isSorted = false;
+	  }
+	  if (callback != null) {
+	    callback = createCallback(callback, thisArg, 3);
+	  }
+	  return baseUniq(array, isSorted, callback);
+	}
+
+	module.exports = uniq;
+
+
+/***/ },
+/* 81 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+	 * Build: `lodash modularize modern exports="node" -o ./modern/`
+	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	 * Available under MIT license <http://lodash.com/license>
+	 */
+	var createCallback = __webpack_require__(147),
 	    forOwn = __webpack_require__(73);
 
 	/**
@@ -16150,7 +16286,7 @@
 
 
 /***/ },
-/* 81 */
+/* 82 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -16183,7 +16319,7 @@
 
 
 /***/ },
-/* 82 */
+/* 83 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -16223,81 +16359,6 @@
 	}
 
 	module.exports = isString;
-
-
-/***/ },
-/* 83 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
-	 * Build: `lodash modularize modern exports="node" -o ./modern/`
-	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
-	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
-	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-	 * Available under MIT license <http://lodash.com/license>
-	 */
-	var baseUniq = __webpack_require__(160),
-	    createCallback = __webpack_require__(145);
-
-	/**
-	 * Creates a duplicate-value-free version of an array using strict equality
-	 * for comparisons, i.e. `===`. If the array is sorted, providing
-	 * `true` for `isSorted` will use a faster algorithm. If a callback is provided
-	 * each element of `array` is passed through the callback before uniqueness
-	 * is computed. The callback is bound to `thisArg` and invoked with three
-	 * arguments; (value, index, array).
-	 *
-	 * If a property name is provided for `callback` the created "_.pluck" style
-	 * callback will return the property value of the given element.
-	 *
-	 * If an object is provided for `callback` the created "_.where" style callback
-	 * will return `true` for elements that have the properties of the given object,
-	 * else `false`.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @alias unique
-	 * @category Arrays
-	 * @param {Array} array The array to process.
-	 * @param {boolean} [isSorted=false] A flag to indicate that `array` is sorted.
-	 * @param {Function|Object|string} [callback=identity] The function called
-	 *  per iteration. If a property name or object is provided it will be used
-	 *  to create a "_.pluck" or "_.where" style callback, respectively.
-	 * @param {*} [thisArg] The `this` binding of `callback`.
-	 * @returns {Array} Returns a duplicate-value-free array.
-	 * @example
-	 *
-	 * _.uniq([1, 2, 1, 3, 1]);
-	 * // => [1, 2, 3]
-	 *
-	 * _.uniq([1, 1, 2, 2, 3], true);
-	 * // => [1, 2, 3]
-	 *
-	 * _.uniq(['A', 'b', 'C', 'a', 'B', 'c'], function(letter) { return letter.toLowerCase(); });
-	 * // => ['A', 'b', 'C']
-	 *
-	 * _.uniq([1, 2.5, 3, 1.5, 2, 3.5], function(num) { return this.floor(num); }, Math);
-	 * // => [1, 2.5, 3]
-	 *
-	 * // using "_.pluck" callback shorthand
-	 * _.uniq([{ 'x': 1 }, { 'x': 2 }, { 'x': 1 }], 'x');
-	 * // => [{ 'x': 1 }, { 'x': 2 }]
-	 */
-	function uniq(array, isSorted, callback, thisArg) {
-	  // juggle arguments
-	  if (typeof isSorted != 'boolean' && isSorted != null) {
-	    thisArg = callback;
-	    callback = (typeof isSorted != 'function' && thisArg && thisArg[isSorted] === array) ? null : isSorted;
-	    isSorted = false;
-	  }
-	  if (callback != null) {
-	    callback = createCallback(callback, thisArg, 3);
-	  }
-	  return baseUniq(array, isSorted, callback);
-	}
-
-	module.exports = uniq;
 
 
 /***/ },
@@ -25391,7 +25452,7 @@
 	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 	 * Available under MIT license <http://lodash.com/license>
 	 */
-	var objectTypes = __webpack_require__(150);
+	var objectTypes = __webpack_require__(148);
 
 	/**
 	 * Checks if `value` is the language type of Object.
@@ -26207,101 +26268,14 @@
 	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 	 * Available under MIT license <http://lodash.com/license>
 	 */
-	var baseCreateCallback = __webpack_require__(147),
-	    baseIsEqual = __webpack_require__(217),
-	    isObject = __webpack_require__(128),
-	    keys = __webpack_require__(74),
-	    property = __webpack_require__(218);
-
-	/**
-	 * Produces a callback bound to an optional `thisArg`. If `func` is a property
-	 * name the created callback will return the property value for a given element.
-	 * If `func` is an object the created callback will return `true` for elements
-	 * that contain the equivalent object properties, otherwise it will return `false`.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @category Utilities
-	 * @param {*} [func=identity] The value to convert to a callback.
-	 * @param {*} [thisArg] The `this` binding of the created callback.
-	 * @param {number} [argCount] The number of arguments the callback accepts.
-	 * @returns {Function} Returns a callback function.
-	 * @example
-	 *
-	 * var characters = [
-	 *   { 'name': 'barney', 'age': 36 },
-	 *   { 'name': 'fred',   'age': 40 }
-	 * ];
-	 *
-	 * // wrap to create custom callback shorthands
-	 * _.createCallback = _.wrap(_.createCallback, function(func, callback, thisArg) {
-	 *   var match = /^(.+?)__([gl]t)(.+)$/.exec(callback);
-	 *   return !match ? func(callback, thisArg) : function(object) {
-	 *     return match[2] == 'gt' ? object[match[1]] > match[3] : object[match[1]] < match[3];
-	 *   };
-	 * });
-	 *
-	 * _.filter(characters, 'age__gt38');
-	 * // => [{ 'name': 'fred', 'age': 40 }]
-	 */
-	function createCallback(func, thisArg, argCount) {
-	  var type = typeof func;
-	  if (func == null || type == 'function') {
-	    return baseCreateCallback(func, thisArg, argCount);
-	  }
-	  // handle "_.pluck" style callback shorthands
-	  if (type != 'object') {
-	    return property(func);
-	  }
-	  var props = keys(func),
-	      key = props[0],
-	      a = func[key];
-
-	  // handle "_.where" style callback shorthands
-	  if (props.length == 1 && a === a && !isObject(a)) {
-	    // fast path the common case of providing an object with a single
-	    // property containing a primitive value
-	    return function(object) {
-	      var b = object[key];
-	      return a === b && (a !== 0 || (1 / a == 1 / b));
-	    };
-	  }
-	  return function(object) {
-	    var length = props.length,
-	        result = false;
-
-	    while (length--) {
-	      if (!(result = baseIsEqual(object[props[length]], func[props[length]], null, true))) {
-	        break;
-	      }
-	    }
-	    return result;
-	  };
-	}
-
-	module.exports = createCallback;
-
-
-/***/ },
-/* 146 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
-	 * Build: `lodash modularize modern exports="node" -o ./modern/`
-	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
-	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
-	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-	 * Available under MIT license <http://lodash.com/license>
-	 */
-	var assign = __webpack_require__(219),
-	    forEach = __webpack_require__(76),
+	var assign = __webpack_require__(221),
+	    forEach = __webpack_require__(77),
 	    forOwn = __webpack_require__(73),
 	    getArray = __webpack_require__(154),
 	    isArray = __webpack_require__(156),
 	    isObject = __webpack_require__(128),
 	    releaseArray = __webpack_require__(158),
-	    slice = __webpack_require__(220);
+	    slice = __webpack_require__(222);
 
 	/** Used to match regexp flags from their coerced string values */
 	var reFlags = /\w*$/;
@@ -26441,7 +26415,7 @@
 
 
 /***/ },
-/* 147 */
+/* 146 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -26452,10 +26426,10 @@
 	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 	 * Available under MIT license <http://lodash.com/license>
 	 */
-	var bind = __webpack_require__(221),
-	    identity = __webpack_require__(222),
-	    setBindData = __webpack_require__(223),
-	    support = __webpack_require__(224);
+	var bind = __webpack_require__(217),
+	    identity = __webpack_require__(218),
+	    setBindData = __webpack_require__(219),
+	    support = __webpack_require__(220);
 
 	/** Used to detected named functions */
 	var reFuncName = /^\s*function[ \n\r\t]+\w/;
@@ -26527,7 +26501,120 @@
 
 
 /***/ },
+/* 147 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+	 * Build: `lodash modularize modern exports="node" -o ./modern/`
+	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	 * Available under MIT license <http://lodash.com/license>
+	 */
+	var baseCreateCallback = __webpack_require__(146),
+	    baseIsEqual = __webpack_require__(223),
+	    isObject = __webpack_require__(128),
+	    keys = __webpack_require__(75),
+	    property = __webpack_require__(224);
+
+	/**
+	 * Produces a callback bound to an optional `thisArg`. If `func` is a property
+	 * name the created callback will return the property value for a given element.
+	 * If `func` is an object the created callback will return `true` for elements
+	 * that contain the equivalent object properties, otherwise it will return `false`.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @category Utilities
+	 * @param {*} [func=identity] The value to convert to a callback.
+	 * @param {*} [thisArg] The `this` binding of the created callback.
+	 * @param {number} [argCount] The number of arguments the callback accepts.
+	 * @returns {Function} Returns a callback function.
+	 * @example
+	 *
+	 * var characters = [
+	 *   { 'name': 'barney', 'age': 36 },
+	 *   { 'name': 'fred',   'age': 40 }
+	 * ];
+	 *
+	 * // wrap to create custom callback shorthands
+	 * _.createCallback = _.wrap(_.createCallback, function(func, callback, thisArg) {
+	 *   var match = /^(.+?)__([gl]t)(.+)$/.exec(callback);
+	 *   return !match ? func(callback, thisArg) : function(object) {
+	 *     return match[2] == 'gt' ? object[match[1]] > match[3] : object[match[1]] < match[3];
+	 *   };
+	 * });
+	 *
+	 * _.filter(characters, 'age__gt38');
+	 * // => [{ 'name': 'fred', 'age': 40 }]
+	 */
+	function createCallback(func, thisArg, argCount) {
+	  var type = typeof func;
+	  if (func == null || type == 'function') {
+	    return baseCreateCallback(func, thisArg, argCount);
+	  }
+	  // handle "_.pluck" style callback shorthands
+	  if (type != 'object') {
+	    return property(func);
+	  }
+	  var props = keys(func),
+	      key = props[0],
+	      a = func[key];
+
+	  // handle "_.where" style callback shorthands
+	  if (props.length == 1 && a === a && !isObject(a)) {
+	    // fast path the common case of providing an object with a single
+	    // property containing a primitive value
+	    return function(object) {
+	      var b = object[key];
+	      return a === b && (a !== 0 || (1 / a == 1 / b));
+	    };
+	  }
+	  return function(object) {
+	    var length = props.length,
+	        result = false;
+
+	    while (length--) {
+	      if (!(result = baseIsEqual(object[props[length]], func[props[length]], null, true))) {
+	        break;
+	      }
+	    }
+	    return result;
+	  };
+	}
+
+	module.exports = createCallback;
+
+
+/***/ },
 /* 148 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+	 * Build: `lodash modularize modern exports="node" -o ./modern/`
+	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	 * Available under MIT license <http://lodash.com/license>
+	 */
+
+	/** Used to determine if values are of the language type Object */
+	var objectTypes = {
+	  'boolean': false,
+	  'function': true,
+	  'object': true,
+	  'number': false,
+	  'string': false,
+	  'undefined': false
+	};
+
+	module.exports = objectTypes;
+
+
+/***/ },
+/* 149 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -26567,7 +26654,7 @@
 
 
 /***/ },
-/* 149 */
+/* 150 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -26578,7 +26665,7 @@
 	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 	 * Available under MIT license <http://lodash.com/license>
 	 */
-	var objectTypes = __webpack_require__(150);
+	var objectTypes = __webpack_require__(148);
 
 	/** Used for native method references */
 	var objectProto = Object.prototype;
@@ -26608,32 +26695,6 @@
 	};
 
 	module.exports = shimKeys;
-
-
-/***/ },
-/* 150 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
-	 * Build: `lodash modularize modern exports="node" -o ./modern/`
-	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
-	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
-	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-	 * Available under MIT license <http://lodash.com/license>
-	 */
-
-	/** Used to determine if values are of the language type Object */
-	var objectTypes = {
-	  'boolean': false,
-	  'function': true,
-	  'object': true,
-	  'number': false,
-	  'string': false,
-	  'undefined': false
-	};
-
-	module.exports = objectTypes;
 
 
 /***/ },
@@ -26855,7 +26916,7 @@
 	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 	 * Available under MIT license <http://lodash.com/license>
 	 */
-	var isNative = __webpack_require__(148);
+	var isNative = __webpack_require__(149);
 
 	/** `Object#toString` result shortcuts */
 	var arrayClass = '[object Array]';
@@ -32418,10 +32479,305 @@
 	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 	 * Available under MIT license <http://lodash.com/license>
 	 */
-	var forIn = __webpack_require__(265),
+	var createWrapper = __webpack_require__(265),
+	    slice = __webpack_require__(222);
+
+	/**
+	 * Creates a function that, when called, invokes `func` with the `this`
+	 * binding of `thisArg` and prepends any additional `bind` arguments to those
+	 * provided to the bound function.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @category Functions
+	 * @param {Function} func The function to bind.
+	 * @param {*} [thisArg] The `this` binding of `func`.
+	 * @param {...*} [arg] Arguments to be partially applied.
+	 * @returns {Function} Returns the new bound function.
+	 * @example
+	 *
+	 * var func = function(greeting) {
+	 *   return greeting + ' ' + this.name;
+	 * };
+	 *
+	 * func = _.bind(func, { 'name': 'fred' }, 'hi');
+	 * func();
+	 * // => 'hi fred'
+	 */
+	function bind(func, thisArg) {
+	  return arguments.length > 2
+	    ? createWrapper(func, 17, slice(arguments, 2), null, thisArg)
+	    : createWrapper(func, 1, null, null, thisArg);
+	}
+
+	module.exports = bind;
+
+
+/***/ },
+/* 218 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+	 * Build: `lodash modularize modern exports="node" -o ./modern/`
+	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	 * Available under MIT license <http://lodash.com/license>
+	 */
+
+	/**
+	 * This method returns the first argument provided to it.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @category Utilities
+	 * @param {*} value Any value.
+	 * @returns {*} Returns `value`.
+	 * @example
+	 *
+	 * var object = { 'name': 'fred' };
+	 * _.identity(object) === object;
+	 * // => true
+	 */
+	function identity(value) {
+	  return value;
+	}
+
+	module.exports = identity;
+
+
+/***/ },
+/* 219 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+	 * Build: `lodash modularize modern exports="node" -o ./modern/`
+	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	 * Available under MIT license <http://lodash.com/license>
+	 */
+	var isNative = __webpack_require__(149),
+	    noop = __webpack_require__(266);
+
+	/** Used as the property descriptor for `__bindData__` */
+	var descriptor = {
+	  'configurable': false,
+	  'enumerable': false,
+	  'value': null,
+	  'writable': false
+	};
+
+	/** Used to set meta data on functions */
+	var defineProperty = (function() {
+	  // IE 8 only accepts DOM elements
+	  try {
+	    var o = {},
+	        func = isNative(func = Object.defineProperty) && func,
+	        result = func(o, o, o) && func;
+	  } catch(e) { }
+	  return result;
+	}());
+
+	/**
+	 * Sets `this` binding data on a given function.
+	 *
+	 * @private
+	 * @param {Function} func The function to set data on.
+	 * @param {Array} value The data array to set.
+	 */
+	var setBindData = !defineProperty ? noop : function(func, value) {
+	  descriptor.value = value;
+	  defineProperty(func, '__bindData__', descriptor);
+	};
+
+	module.exports = setBindData;
+
+
+/***/ },
+/* 220 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+	 * Build: `lodash modularize modern exports="node" -o ./modern/`
+	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	 * Available under MIT license <http://lodash.com/license>
+	 */
+	var isNative = __webpack_require__(149);
+
+	/** Used to detect functions containing a `this` reference */
+	var reThis = /\bthis\b/;
+
+	/**
+	 * An object used to flag environments features.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @type Object
+	 */
+	var support = {};
+
+	/**
+	 * Detect if functions can be decompiled by `Function#toString`
+	 * (all but PS3 and older Opera mobile browsers & avoided in Windows 8 apps).
+	 *
+	 * @memberOf _.support
+	 * @type boolean
+	 */
+	support.funcDecomp = !isNative(global.WinRTError) && reThis.test(function() { return this; });
+
+	/**
+	 * Detect if `Function#name` is supported (all but IE).
+	 *
+	 * @memberOf _.support
+	 * @type boolean
+	 */
+	support.funcNames = typeof Function.name == 'string';
+
+	module.exports = support;
+
+
+/***/ },
+/* 221 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+	 * Build: `lodash modularize modern exports="node" -o ./modern/`
+	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	 * Available under MIT license <http://lodash.com/license>
+	 */
+	var baseCreateCallback = __webpack_require__(146),
+	    keys = __webpack_require__(75),
+	    objectTypes = __webpack_require__(148);
+
+	/**
+	 * Assigns own enumerable properties of source object(s) to the destination
+	 * object. Subsequent sources will overwrite property assignments of previous
+	 * sources. If a callback is provided it will be executed to produce the
+	 * assigned values. The callback is bound to `thisArg` and invoked with two
+	 * arguments; (objectValue, sourceValue).
+	 *
+	 * @static
+	 * @memberOf _
+	 * @type Function
+	 * @alias extend
+	 * @category Objects
+	 * @param {Object} object The destination object.
+	 * @param {...Object} [source] The source objects.
+	 * @param {Function} [callback] The function to customize assigning values.
+	 * @param {*} [thisArg] The `this` binding of `callback`.
+	 * @returns {Object} Returns the destination object.
+	 * @example
+	 *
+	 * _.assign({ 'name': 'fred' }, { 'employer': 'slate' });
+	 * // => { 'name': 'fred', 'employer': 'slate' }
+	 *
+	 * var defaults = _.partialRight(_.assign, function(a, b) {
+	 *   return typeof a == 'undefined' ? b : a;
+	 * });
+	 *
+	 * var object = { 'name': 'barney' };
+	 * defaults(object, { 'name': 'fred', 'employer': 'slate' });
+	 * // => { 'name': 'barney', 'employer': 'slate' }
+	 */
+	var assign = function(object, source, guard) {
+	  var index, iterable = object, result = iterable;
+	  if (!iterable) return result;
+	  var args = arguments,
+	      argsIndex = 0,
+	      argsLength = typeof guard == 'number' ? 2 : args.length;
+	  if (argsLength > 3 && typeof args[argsLength - 2] == 'function') {
+	    var callback = baseCreateCallback(args[--argsLength - 1], args[argsLength--], 2);
+	  } else if (argsLength > 2 && typeof args[argsLength - 1] == 'function') {
+	    callback = args[--argsLength];
+	  }
+	  while (++argsIndex < argsLength) {
+	    iterable = args[argsIndex];
+	    if (iterable && objectTypes[typeof iterable]) {
+	    var ownIndex = -1,
+	        ownProps = objectTypes[typeof iterable] && keys(iterable),
+	        length = ownProps ? ownProps.length : 0;
+
+	    while (++ownIndex < length) {
+	      index = ownProps[ownIndex];
+	      result[index] = callback ? callback(result[index], iterable[index]) : iterable[index];
+	    }
+	    }
+	  }
+	  return result
+	};
+
+	module.exports = assign;
+
+
+/***/ },
+/* 222 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+	 * Build: `lodash modularize modern exports="node" -o ./modern/`
+	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	 * Available under MIT license <http://lodash.com/license>
+	 */
+
+	/**
+	 * Slices the `collection` from the `start` index up to, but not including,
+	 * the `end` index.
+	 *
+	 * Note: This function is used instead of `Array#slice` to support node lists
+	 * in IE < 9 and to ensure dense arrays are returned.
+	 *
+	 * @private
+	 * @param {Array|Object|string} collection The collection to slice.
+	 * @param {number} start The start index.
+	 * @param {number} end The end index.
+	 * @returns {Array} Returns the new array.
+	 */
+	function slice(array, start, end) {
+	  start || (start = 0);
+	  if (typeof end == 'undefined') {
+	    end = array ? array.length : 0;
+	  }
+	  var index = -1,
+	      length = end - start || 0,
+	      result = Array(length < 0 ? 0 : length);
+
+	  while (++index < length) {
+	    result[index] = array[start + index];
+	  }
+	  return result;
+	}
+
+	module.exports = slice;
+
+
+/***/ },
+/* 223 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+	 * Build: `lodash modularize modern exports="node" -o ./modern/`
+	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	 * Available under MIT license <http://lodash.com/license>
+	 */
+	var forIn = __webpack_require__(267),
 	    getArray = __webpack_require__(154),
-	    isFunction = __webpack_require__(81),
-	    objectTypes = __webpack_require__(150),
+	    isFunction = __webpack_require__(82),
+	    objectTypes = __webpack_require__(148),
 	    releaseArray = __webpack_require__(158);
 
 	/** `Object#toString` result shortcuts */
@@ -32622,7 +32978,7 @@
 
 
 /***/ },
-/* 218 */
+/* 224 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -32665,301 +33021,6 @@
 	}
 
 	module.exports = property;
-
-
-/***/ },
-/* 219 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
-	 * Build: `lodash modularize modern exports="node" -o ./modern/`
-	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
-	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
-	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-	 * Available under MIT license <http://lodash.com/license>
-	 */
-	var baseCreateCallback = __webpack_require__(147),
-	    keys = __webpack_require__(74),
-	    objectTypes = __webpack_require__(150);
-
-	/**
-	 * Assigns own enumerable properties of source object(s) to the destination
-	 * object. Subsequent sources will overwrite property assignments of previous
-	 * sources. If a callback is provided it will be executed to produce the
-	 * assigned values. The callback is bound to `thisArg` and invoked with two
-	 * arguments; (objectValue, sourceValue).
-	 *
-	 * @static
-	 * @memberOf _
-	 * @type Function
-	 * @alias extend
-	 * @category Objects
-	 * @param {Object} object The destination object.
-	 * @param {...Object} [source] The source objects.
-	 * @param {Function} [callback] The function to customize assigning values.
-	 * @param {*} [thisArg] The `this` binding of `callback`.
-	 * @returns {Object} Returns the destination object.
-	 * @example
-	 *
-	 * _.assign({ 'name': 'fred' }, { 'employer': 'slate' });
-	 * // => { 'name': 'fred', 'employer': 'slate' }
-	 *
-	 * var defaults = _.partialRight(_.assign, function(a, b) {
-	 *   return typeof a == 'undefined' ? b : a;
-	 * });
-	 *
-	 * var object = { 'name': 'barney' };
-	 * defaults(object, { 'name': 'fred', 'employer': 'slate' });
-	 * // => { 'name': 'barney', 'employer': 'slate' }
-	 */
-	var assign = function(object, source, guard) {
-	  var index, iterable = object, result = iterable;
-	  if (!iterable) return result;
-	  var args = arguments,
-	      argsIndex = 0,
-	      argsLength = typeof guard == 'number' ? 2 : args.length;
-	  if (argsLength > 3 && typeof args[argsLength - 2] == 'function') {
-	    var callback = baseCreateCallback(args[--argsLength - 1], args[argsLength--], 2);
-	  } else if (argsLength > 2 && typeof args[argsLength - 1] == 'function') {
-	    callback = args[--argsLength];
-	  }
-	  while (++argsIndex < argsLength) {
-	    iterable = args[argsIndex];
-	    if (iterable && objectTypes[typeof iterable]) {
-	    var ownIndex = -1,
-	        ownProps = objectTypes[typeof iterable] && keys(iterable),
-	        length = ownProps ? ownProps.length : 0;
-
-	    while (++ownIndex < length) {
-	      index = ownProps[ownIndex];
-	      result[index] = callback ? callback(result[index], iterable[index]) : iterable[index];
-	    }
-	    }
-	  }
-	  return result
-	};
-
-	module.exports = assign;
-
-
-/***/ },
-/* 220 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
-	 * Build: `lodash modularize modern exports="node" -o ./modern/`
-	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
-	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
-	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-	 * Available under MIT license <http://lodash.com/license>
-	 */
-
-	/**
-	 * Slices the `collection` from the `start` index up to, but not including,
-	 * the `end` index.
-	 *
-	 * Note: This function is used instead of `Array#slice` to support node lists
-	 * in IE < 9 and to ensure dense arrays are returned.
-	 *
-	 * @private
-	 * @param {Array|Object|string} collection The collection to slice.
-	 * @param {number} start The start index.
-	 * @param {number} end The end index.
-	 * @returns {Array} Returns the new array.
-	 */
-	function slice(array, start, end) {
-	  start || (start = 0);
-	  if (typeof end == 'undefined') {
-	    end = array ? array.length : 0;
-	  }
-	  var index = -1,
-	      length = end - start || 0,
-	      result = Array(length < 0 ? 0 : length);
-
-	  while (++index < length) {
-	    result[index] = array[start + index];
-	  }
-	  return result;
-	}
-
-	module.exports = slice;
-
-
-/***/ },
-/* 221 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
-	 * Build: `lodash modularize modern exports="node" -o ./modern/`
-	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
-	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
-	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-	 * Available under MIT license <http://lodash.com/license>
-	 */
-	var createWrapper = __webpack_require__(266),
-	    slice = __webpack_require__(220);
-
-	/**
-	 * Creates a function that, when called, invokes `func` with the `this`
-	 * binding of `thisArg` and prepends any additional `bind` arguments to those
-	 * provided to the bound function.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @category Functions
-	 * @param {Function} func The function to bind.
-	 * @param {*} [thisArg] The `this` binding of `func`.
-	 * @param {...*} [arg] Arguments to be partially applied.
-	 * @returns {Function} Returns the new bound function.
-	 * @example
-	 *
-	 * var func = function(greeting) {
-	 *   return greeting + ' ' + this.name;
-	 * };
-	 *
-	 * func = _.bind(func, { 'name': 'fred' }, 'hi');
-	 * func();
-	 * // => 'hi fred'
-	 */
-	function bind(func, thisArg) {
-	  return arguments.length > 2
-	    ? createWrapper(func, 17, slice(arguments, 2), null, thisArg)
-	    : createWrapper(func, 1, null, null, thisArg);
-	}
-
-	module.exports = bind;
-
-
-/***/ },
-/* 222 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
-	 * Build: `lodash modularize modern exports="node" -o ./modern/`
-	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
-	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
-	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-	 * Available under MIT license <http://lodash.com/license>
-	 */
-
-	/**
-	 * This method returns the first argument provided to it.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @category Utilities
-	 * @param {*} value Any value.
-	 * @returns {*} Returns `value`.
-	 * @example
-	 *
-	 * var object = { 'name': 'fred' };
-	 * _.identity(object) === object;
-	 * // => true
-	 */
-	function identity(value) {
-	  return value;
-	}
-
-	module.exports = identity;
-
-
-/***/ },
-/* 223 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
-	 * Build: `lodash modularize modern exports="node" -o ./modern/`
-	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
-	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
-	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-	 * Available under MIT license <http://lodash.com/license>
-	 */
-	var isNative = __webpack_require__(148),
-	    noop = __webpack_require__(267);
-
-	/** Used as the property descriptor for `__bindData__` */
-	var descriptor = {
-	  'configurable': false,
-	  'enumerable': false,
-	  'value': null,
-	  'writable': false
-	};
-
-	/** Used to set meta data on functions */
-	var defineProperty = (function() {
-	  // IE 8 only accepts DOM elements
-	  try {
-	    var o = {},
-	        func = isNative(func = Object.defineProperty) && func,
-	        result = func(o, o, o) && func;
-	  } catch(e) { }
-	  return result;
-	}());
-
-	/**
-	 * Sets `this` binding data on a given function.
-	 *
-	 * @private
-	 * @param {Function} func The function to set data on.
-	 * @param {Array} value The data array to set.
-	 */
-	var setBindData = !defineProperty ? noop : function(func, value) {
-	  descriptor.value = value;
-	  defineProperty(func, '__bindData__', descriptor);
-	};
-
-	module.exports = setBindData;
-
-
-/***/ },
-/* 224 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
-	 * Build: `lodash modularize modern exports="node" -o ./modern/`
-	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
-	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
-	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-	 * Available under MIT license <http://lodash.com/license>
-	 */
-	var isNative = __webpack_require__(148);
-
-	/** Used to detect functions containing a `this` reference */
-	var reThis = /\bthis\b/;
-
-	/**
-	 * An object used to flag environments features.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @type Object
-	 */
-	var support = {};
-
-	/**
-	 * Detect if functions can be decompiled by `Function#toString`
-	 * (all but PS3 and older Opera mobile browsers & avoided in Windows 8 apps).
-	 *
-	 * @memberOf _.support
-	 * @type boolean
-	 */
-	support.funcDecomp = !isNative(global.WinRTError) && reThis.test(function() { return this; });
-
-	/**
-	 * Detect if `Function#name` is supported (all but IE).
-	 *
-	 * @memberOf _.support
-	 * @type boolean
-	 */
-	support.funcNames = typeof Function.name == 'string';
-
-	module.exports = support;
 
 
 /***/ },
@@ -36201,70 +36262,10 @@
 	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 	 * Available under MIT license <http://lodash.com/license>
 	 */
-	var baseCreateCallback = __webpack_require__(147),
-	    objectTypes = __webpack_require__(150);
-
-	/**
-	 * Iterates over own and inherited enumerable properties of an object,
-	 * executing the callback for each property. The callback is bound to `thisArg`
-	 * and invoked with three arguments; (value, key, object). Callbacks may exit
-	 * iteration early by explicitly returning `false`.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @type Function
-	 * @category Objects
-	 * @param {Object} object The object to iterate over.
-	 * @param {Function} [callback=identity] The function called per iteration.
-	 * @param {*} [thisArg] The `this` binding of `callback`.
-	 * @returns {Object} Returns `object`.
-	 * @example
-	 *
-	 * function Shape() {
-	 *   this.x = 0;
-	 *   this.y = 0;
-	 * }
-	 *
-	 * Shape.prototype.move = function(x, y) {
-	 *   this.x += x;
-	 *   this.y += y;
-	 * };
-	 *
-	 * _.forIn(new Shape, function(value, key) {
-	 *   console.log(key);
-	 * });
-	 * // => logs 'x', 'y', and 'move' (property order is not guaranteed across environments)
-	 */
-	var forIn = function(collection, callback, thisArg) {
-	  var index, iterable = collection, result = iterable;
-	  if (!iterable) return result;
-	  if (!objectTypes[typeof iterable]) return result;
-	  callback = callback && typeof thisArg == 'undefined' ? callback : baseCreateCallback(callback, thisArg, 3);
-	    for (index in iterable) {
-	      if (callback(iterable[index], index, collection) === false) return result;
-	    }
-	  return result
-	};
-
-	module.exports = forIn;
-
-
-/***/ },
-/* 266 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
-	 * Build: `lodash modularize modern exports="node" -o ./modern/`
-	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
-	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
-	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-	 * Available under MIT license <http://lodash.com/license>
-	 */
 	var baseBind = __webpack_require__(279),
 	    baseCreateWrapper = __webpack_require__(280),
-	    isFunction = __webpack_require__(81),
-	    slice = __webpack_require__(220);
+	    isFunction = __webpack_require__(82),
+	    slice = __webpack_require__(222);
 
 	/**
 	 * Used for `Array` method references.
@@ -36362,7 +36363,7 @@
 
 
 /***/ },
-/* 267 */
+/* 266 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -36391,6 +36392,66 @@
 	}
 
 	module.exports = noop;
+
+
+/***/ },
+/* 267 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+	 * Build: `lodash modularize modern exports="node" -o ./modern/`
+	 * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+	 * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	 * Available under MIT license <http://lodash.com/license>
+	 */
+	var baseCreateCallback = __webpack_require__(146),
+	    objectTypes = __webpack_require__(148);
+
+	/**
+	 * Iterates over own and inherited enumerable properties of an object,
+	 * executing the callback for each property. The callback is bound to `thisArg`
+	 * and invoked with three arguments; (value, key, object). Callbacks may exit
+	 * iteration early by explicitly returning `false`.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @type Function
+	 * @category Objects
+	 * @param {Object} object The object to iterate over.
+	 * @param {Function} [callback=identity] The function called per iteration.
+	 * @param {*} [thisArg] The `this` binding of `callback`.
+	 * @returns {Object} Returns `object`.
+	 * @example
+	 *
+	 * function Shape() {
+	 *   this.x = 0;
+	 *   this.y = 0;
+	 * }
+	 *
+	 * Shape.prototype.move = function(x, y) {
+	 *   this.x += x;
+	 *   this.y += y;
+	 * };
+	 *
+	 * _.forIn(new Shape, function(value, key) {
+	 *   console.log(key);
+	 * });
+	 * // => logs 'x', 'y', and 'move' (property order is not guaranteed across environments)
+	 */
+	var forIn = function(collection, callback, thisArg) {
+	  var index, iterable = collection, result = iterable;
+	  if (!iterable) return result;
+	  if (!objectTypes[typeof iterable]) return result;
+	  callback = callback && typeof thisArg == 'undefined' ? callback : baseCreateCallback(callback, thisArg, 3);
+	    for (index in iterable) {
+	      if (callback(iterable[index], index, collection) === false) return result;
+	    }
+	  return result
+	};
+
+	module.exports = forIn;
 
 
 /***/ },
@@ -37395,8 +37456,8 @@
 	 */
 	var baseCreate = __webpack_require__(283),
 	    isObject = __webpack_require__(128),
-	    setBindData = __webpack_require__(223),
-	    slice = __webpack_require__(220);
+	    setBindData = __webpack_require__(219),
+	    slice = __webpack_require__(222);
 
 	/**
 	 * Used for `Array` method references.
@@ -37463,8 +37524,8 @@
 	 */
 	var baseCreate = __webpack_require__(283),
 	    isObject = __webpack_require__(128),
-	    setBindData = __webpack_require__(223),
-	    slice = __webpack_require__(220);
+	    setBindData = __webpack_require__(219),
+	    slice = __webpack_require__(222);
 
 	/**
 	 * Used for `Array` method references.
@@ -37812,9 +37873,9 @@
 	 * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 	 * Available under MIT license <http://lodash.com/license>
 	 */
-	var isNative = __webpack_require__(148),
+	var isNative = __webpack_require__(149),
 	    isObject = __webpack_require__(128),
-	    noop = __webpack_require__(267);
+	    noop = __webpack_require__(266);
 
 	/* Native method shortcuts for methods with the same name as other `lodash` methods */
 	var nativeCreate = isNative(nativeCreate = Object.create) && nativeCreate;
@@ -38221,6 +38282,811 @@
 	}
 
 	module.exports = toArray;
+
+
+/***/ },
+/* 288 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2012 Craig Campbell
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * Mousetrap is a simple keyboard shortcut library for Javascript with
+	 * no external dependencies
+	 *
+	 * @version 1.1.2
+	 * @url craig.is/killing/mice
+	 */
+
+	  /**
+	   * mapping of special keycodes to their corresponding keys
+	   *
+	   * everything in this dictionary cannot use keypress events
+	   * so it has to be here to map to the correct keycodes for
+	   * keyup/keydown events
+	   *
+	   * @type {Object}
+	   */
+	  var _MAP = {
+	          8: 'backspace',
+	          9: 'tab',
+	          13: 'enter',
+	          16: 'shift',
+	          17: 'ctrl',
+	          18: 'alt',
+	          20: 'capslock',
+	          27: 'esc',
+	          32: 'space',
+	          33: 'pageup',
+	          34: 'pagedown',
+	          35: 'end',
+	          36: 'home',
+	          37: 'left',
+	          38: 'up',
+	          39: 'right',
+	          40: 'down',
+	          45: 'ins',
+	          46: 'del',
+	          91: 'meta',
+	          93: 'meta',
+	          224: 'meta'
+	      },
+
+	      /**
+	       * mapping for special characters so they can support
+	       *
+	       * this dictionary is only used incase you want to bind a
+	       * keyup or keydown event to one of these keys
+	       *
+	       * @type {Object}
+	       */
+	      _KEYCODE_MAP = {
+	          106: '*',
+	          107: '+',
+	          109: '-',
+	          110: '.',
+	          111 : '/',
+	          186: ';',
+	          187: '=',
+	          188: ',',
+	          189: '-',
+	          190: '.',
+	          191: '/',
+	          192: '`',
+	          219: '[',
+	          220: '\\',
+	          221: ']',
+	          222: '\''
+	      },
+
+	      /**
+	       * this is a mapping of keys that require shift on a US keypad
+	       * back to the non shift equivelents
+	       *
+	       * this is so you can use keyup events with these keys
+	       *
+	       * note that this will only work reliably on US keyboards
+	       *
+	       * @type {Object}
+	       */
+	      _SHIFT_MAP = {
+	          '~': '`',
+	          '!': '1',
+	          '@': '2',
+	          '#': '3',
+	          '$': '4',
+	          '%': '5',
+	          '^': '6',
+	          '&': '7',
+	          '*': '8',
+	          '(': '9',
+	          ')': '0',
+	          '_': '-',
+	          '+': '=',
+	          ':': ';',
+	          '\"': '\'',
+	          '<': ',',
+	          '>': '.',
+	          '?': '/',
+	          '|': '\\'
+	      },
+
+	      /**
+	       * this is a list of special strings you can use to map
+	       * to modifier keys when you specify your keyboard shortcuts
+	       *
+	       * @type {Object}
+	       */
+	      _SPECIAL_ALIASES = {
+	          'option': 'alt',
+	          'command': 'meta',
+	          'return': 'enter',
+	          'escape': 'esc'
+	      },
+
+	      /**
+	       * variable to store the flipped version of _MAP from above
+	       * needed to check if we should use keypress or not when no action
+	       * is specified
+	       *
+	       * @type {Object|undefined}
+	       */
+	      _REVERSE_MAP,
+
+	      /**
+	       * a list of all the callbacks setup via Mousetrap.bind()
+	       *
+	       * @type {Object}
+	       */
+	      _callbacks = {},
+
+	      /**
+	       * direct map of string combinations to callbacks used for trigger()
+	       *
+	       * @type {Object}
+	       */
+	      _direct_map = {},
+
+	      /**
+	       * keeps track of what level each sequence is at since multiple
+	       * sequences can start out with the same sequence
+	       *
+	       * @type {Object}
+	       */
+	      _sequence_levels = {},
+
+	      /**
+	       * variable to store the setTimeout call
+	       *
+	       * @type {null|number}
+	       */
+	      _reset_timer,
+
+	      /**
+	       * temporary state where we will ignore the next keyup
+	       *
+	       * @type {boolean|string}
+	       */
+	      _ignore_next_keyup = false,
+
+	      /**
+	       * are we currently inside of a sequence?
+	       * type of action ("keyup" or "keydown" or "keypress") or false
+	       *
+	       * @type {boolean|string}
+	       */
+	      _inside_sequence = false;
+
+	  /**
+	   * loop through the f keys, f1 to f19 and add them to the map
+	   * programatically
+	   */
+	  for (var i = 1; i < 20; ++i) {
+	      _MAP[111 + i] = 'f' + i;
+	  }
+
+	  /**
+	   * loop through to map numbers on the numeric keypad
+	   */
+	  for (i = 0; i <= 9; ++i) {
+	      _MAP[i + 96] = i;
+	  }
+
+	  /**
+	   * cross browser add event method
+	   *
+	   * @param {Element|HTMLDocument} object
+	   * @param {string} type
+	   * @param {Function} callback
+	   * @returns void
+	   */
+	  function _addEvent(object, type, callback) {
+	      if (object.addEventListener) {
+	          return object.addEventListener(type, callback, false);
+	      }
+
+	      object.attachEvent('on' + type, callback);
+	  }
+
+	  /**
+	   * takes the event and returns the key character
+	   *
+	   * @param {Event} e
+	   * @return {string}
+	   */
+	  function _characterFromEvent(e) {
+
+	      // for keypress events we should return the character as is
+	      if (e.type == 'keypress') {
+	          return String.fromCharCode(e.which);
+	      }
+
+	      // for non keypress events the special maps are needed
+	      if (_MAP[e.which]) {
+	          return _MAP[e.which];
+	      }
+
+	      if (_KEYCODE_MAP[e.which]) {
+	          return _KEYCODE_MAP[e.which];
+	      }
+
+	      // if it is not in the special map
+	      return String.fromCharCode(e.which).toLowerCase();
+	  }
+
+	  /**
+	   * should we stop this event before firing off callbacks
+	   *
+	   * @param {Event} e
+	   * @return {boolean}
+	   */
+	  function _stop(e) {
+	      var element = e.target || e.srcElement,
+	          tag_name = element.tagName;
+
+	      // if the element has the class "mousetrap" then no need to stop
+	      if ((' ' + element.className + ' ').indexOf(' mousetrap ') > -1) {
+	          return false;
+	      }
+
+	      // stop for input, select, and textarea
+	      return tag_name == 'INPUT' || tag_name == 'SELECT' || tag_name == 'TEXTAREA' || (element.contentEditable && element.contentEditable == 'true');
+	  }
+
+	  /**
+	   * checks if two arrays are equal
+	   *
+	   * @param {Array} modifiers1
+	   * @param {Array} modifiers2
+	   * @returns {boolean}
+	   */
+	  function _modifiersMatch(modifiers1, modifiers2) {
+	      return modifiers1.sort().join(',') === modifiers2.sort().join(',');
+	  }
+
+	  /**
+	   * resets all sequence counters except for the ones passed in
+	   *
+	   * @param {Object} do_not_reset
+	   * @returns void
+	   */
+	  function _resetSequences(do_not_reset) {
+	      do_not_reset = do_not_reset || {};
+
+	      var active_sequences = false,
+	          key;
+
+	      for (key in _sequence_levels) {
+	          if (do_not_reset[key]) {
+	              active_sequences = true;
+	              continue;
+	          }
+	          _sequence_levels[key] = 0;
+	      }
+
+	      if (!active_sequences) {
+	          _inside_sequence = false;
+	      }
+	  }
+
+	  /**
+	   * finds all callbacks that match based on the keycode, modifiers,
+	   * and action
+	   *
+	   * @param {string} character
+	   * @param {Array} modifiers
+	   * @param {string} action
+	   * @param {boolean=} remove - should we remove any matches
+	   * @param {string=} combination
+	   * @returns {Array}
+	   */
+	  function _getMatches(character, modifiers, action, remove, combination) {
+	      var i,
+	          callback,
+	          matches = [];
+
+	      // if there are no events related to this keycode
+	      if (!_callbacks[character]) {
+	          return [];
+	      }
+
+	      // if a modifier key is coming up on its own we should allow it
+	      if (action == 'keyup' && _isModifier(character)) {
+	          modifiers = [character];
+	      }
+
+	      // loop through all callbacks for the key that was pressed
+	      // and see if any of them match
+	      for (i = 0; i < _callbacks[character].length; ++i) {
+	          callback = _callbacks[character][i];
+
+	          // if this is a sequence but it is not at the right level
+	          // then move onto the next match
+	          if (callback.seq && _sequence_levels[callback.seq] != callback.level) {
+	              continue;
+	          }
+
+	          // if the action we are looking for doesn't match the action we got
+	          // then we should keep going
+	          if (action != callback.action) {
+	              continue;
+	          }
+
+	          // if this is a keypress event that means that we need to only
+	          // look at the character, otherwise check the modifiers as
+	          // well
+	          if (action == 'keypress' || _modifiersMatch(modifiers, callback.modifiers)) {
+
+	              // remove is used so if you change your mind and call bind a
+	              // second time with a new function the first one is overwritten
+	              if (remove && callback.combo == combination) {
+	                  _callbacks[character].splice(i, 1);
+	              }
+
+	              matches.push(callback);
+	          }
+	      }
+
+	      return matches;
+	  }
+
+	  /**
+	   * takes a key event and figures out what the modifiers are
+	   *
+	   * @param {Event} e
+	   * @returns {Array}
+	   */
+	  function _eventModifiers(e) {
+	      var modifiers = [];
+
+	      if (e.shiftKey) {
+	          modifiers.push('shift');
+	      }
+
+	      if (e.altKey) {
+	          modifiers.push('alt');
+	      }
+
+	      if (e.ctrlKey) {
+	          modifiers.push('ctrl');
+	      }
+
+	      if (e.metaKey) {
+	          modifiers.push('meta');
+	      }
+
+	      return modifiers;
+	  }
+
+	  /**
+	   * actually calls the callback function
+	   *
+	   * if your callback function returns false this will use the jquery
+	   * convention - prevent default and stop propogation on the event
+	   *
+	   * @param {Function} callback
+	   * @param {Event} e
+	   * @returns void
+	   */
+	  function _fireCallback(callback, e) {
+	      if (callback(e) === false) {
+	          if (e.preventDefault) {
+	              e.preventDefault();
+	          }
+
+	          if (e.stopPropagation) {
+	              e.stopPropagation();
+	          }
+
+	          e.returnValue = false;
+	          e.cancelBubble = true;
+	      }
+	  }
+
+	  /**
+	   * handles a character key event
+	   *
+	   * @param {string} character
+	   * @param {Event} e
+	   * @returns void
+	   */
+	  function _handleCharacter(character, e) {
+
+	      // if this event should not happen stop here
+	      if (_stop(e)) {
+	          return;
+	      }
+
+	      var callbacks = _getMatches(character, _eventModifiers(e), e.type),
+	          i,
+	          do_not_reset = {},
+	          processed_sequence_callback = false;
+
+	      // loop through matching callbacks for this key event
+	      for (i = 0; i < callbacks.length; ++i) {
+
+	          // fire for all sequence callbacks
+	          // this is because if for example you have multiple sequences
+	          // bound such as "g i" and "g t" they both need to fire the
+	          // callback for matching g cause otherwise you can only ever
+	          // match the first one
+	          if (callbacks[i].seq) {
+	              processed_sequence_callback = true;
+
+	              // keep a list of which sequences were matches for later
+	              do_not_reset[callbacks[i].seq] = 1;
+	              _fireCallback(callbacks[i].callback, e);
+	              continue;
+	          }
+
+	          // if there were no sequence matches but we are still here
+	          // that means this is a regular match so we should fire that
+	          if (!processed_sequence_callback && !_inside_sequence) {
+	              _fireCallback(callbacks[i].callback, e);
+	          }
+	      }
+
+	      // if you are inside of a sequence and the key you are pressing
+	      // is not a modifier key then we should reset all sequences
+	      // that were not matched by this key event
+	      if (e.type == _inside_sequence && !_isModifier(character)) {
+	          _resetSequences(do_not_reset);
+	      }
+	  }
+
+	  /**
+	   * handles a keydown event
+	   *
+	   * @param {Event} e
+	   * @returns void
+	   */
+	  function _handleKey(e) {
+
+	      // normalize e.which for key events
+	      // @see http://stackoverflow.com/questions/4285627/javascript-keycode-vs-charcode-utter-confusion
+	      e.which = typeof e.which == "number" ? e.which : e.keyCode;
+
+	      var character = _characterFromEvent(e);
+
+	      // no character found then stop
+	      if (!character) {
+	          return;
+	      }
+
+	      if (e.type == 'keyup' && _ignore_next_keyup == character) {
+	          _ignore_next_keyup = false;
+	          return;
+	      }
+
+	      _handleCharacter(character, e);
+	  }
+
+	  /**
+	   * determines if the keycode specified is a modifier key or not
+	   *
+	   * @param {string} key
+	   * @returns {boolean}
+	   */
+	  function _isModifier(key) {
+	      return key == 'shift' || key == 'ctrl' || key == 'alt' || key == 'meta';
+	  }
+
+	  /**
+	   * called to set a 1 second timeout on the specified sequence
+	   *
+	   * this is so after each key press in the sequence you have 1 second
+	   * to press the next key before you have to start over
+	   *
+	   * @returns void
+	   */
+	  function _resetSequenceTimer() {
+	      clearTimeout(_reset_timer);
+	      _reset_timer = setTimeout(_resetSequences, 1000);
+	  }
+
+	  /**
+	   * reverses the map lookup so that we can look for specific keys
+	   * to see what can and can't use keypress
+	   *
+	   * @return {Object}
+	   */
+	  function _getReverseMap() {
+	      if (!_REVERSE_MAP) {
+	          _REVERSE_MAP = {};
+	          for (var key in _MAP) {
+
+	              // pull out the numeric keypad from here cause keypress should
+	              // be able to detect the keys from the character
+	              if (key > 95 && key < 112) {
+	                  continue;
+	              }
+
+	              if (_MAP.hasOwnProperty(key)) {
+	                  _REVERSE_MAP[_MAP[key]] = key;
+	              }
+	          }
+	      }
+	      return _REVERSE_MAP;
+	  }
+
+	  /**
+	   * picks the best action based on the key combination
+	   *
+	   * @param {string} key - character for key
+	   * @param {Array} modifiers
+	   * @param {string=} action passed in
+	   */
+	  function _pickBestAction(key, modifiers, action) {
+
+	      // if no action was picked in we should try to pick the one
+	      // that we think would work best for this key
+	      if (!action) {
+	          action = _getReverseMap()[key] ? 'keydown' : 'keypress';
+	      }
+
+	      // modifier keys don't work as expected with keypress,
+	      // switch to keydown
+	      if (action == 'keypress' && modifiers.length) {
+	          action = 'keydown';
+	      }
+
+	      return action;
+	  }
+
+	  /**
+	   * binds a key sequence to an event
+	   *
+	   * @param {string} combo - combo specified in bind call
+	   * @param {Array} keys
+	   * @param {Function} callback
+	   * @param {string=} action
+	   * @returns void
+	   */
+	  function _bindSequence(combo, keys, callback, action) {
+
+	      // start off by adding a sequence level record for this combination
+	      // and setting the level to 0
+	      _sequence_levels[combo] = 0;
+
+	      // if there is no action pick the best one for the first key
+	      // in the sequence
+	      if (!action) {
+	          action = _pickBestAction(keys[0], []);
+	      }
+
+	      /**
+	       * callback to increase the sequence level for this sequence and reset
+	       * all other sequences that were active
+	       *
+	       * @param {Event} e
+	       * @returns void
+	       */
+	      var _increaseSequence = function(e) {
+	              _inside_sequence = action;
+	              ++_sequence_levels[combo];
+	              _resetSequenceTimer();
+	          },
+
+	          /**
+	           * wraps the specified callback inside of another function in order
+	           * to reset all sequence counters as soon as this sequence is done
+	           *
+	           * @param {Event} e
+	           * @returns void
+	           */
+	          _callbackAndReset = function(e) {
+	              _fireCallback(callback, e);
+
+	              // we should ignore the next key up if the action is key down
+	              // or keypress.  this is so if you finish a sequence and
+	              // release the key the final key will not trigger a keyup
+	              if (action !== 'keyup') {
+	                  _ignore_next_keyup = _characterFromEvent(e);
+	              }
+
+	              // weird race condition if a sequence ends with the key
+	              // another sequence begins with
+	              setTimeout(_resetSequences, 10);
+	          },
+	          i;
+
+	      // loop through keys one at a time and bind the appropriate callback
+	      // function.  for any key leading up to the final one it should
+	      // increase the sequence. after the final, it should reset all sequences
+	      for (i = 0; i < keys.length; ++i) {
+	          _bindSingle(keys[i], i < keys.length - 1 ? _increaseSequence : _callbackAndReset, action, combo, i);
+	      }
+	  }
+
+	  /**
+	   * binds a single keyboard combination
+	   *
+	   * @param {string} combination
+	   * @param {Function} callback
+	   * @param {string=} action
+	   * @param {string=} sequence_name - name of sequence if part of sequence
+	   * @param {number=} level - what part of the sequence the command is
+	   * @returns void
+	   */
+	  function _bindSingle(combination, callback, action, sequence_name, level) {
+
+	      // make sure multiple spaces in a row become a single space
+	      combination = combination.replace(/\s+/g, ' ');
+
+	      var sequence = combination.split(' '),
+	          i,
+	          key,
+	          keys,
+	          modifiers = [];
+
+	      // if this pattern is a sequence of keys then run through this method
+	      // to reprocess each pattern one key at a time
+	      if (sequence.length > 1) {
+	          return _bindSequence(combination, sequence, callback, action);
+	      }
+
+	      // take the keys from this pattern and figure out what the actual
+	      // pattern is all about
+	      keys = combination === '+' ? ['+'] : combination.split('+');
+
+	      for (i = 0; i < keys.length; ++i) {
+	          key = keys[i];
+
+	          // normalize key names
+	          if (_SPECIAL_ALIASES[key]) {
+	              key = _SPECIAL_ALIASES[key];
+	          }
+
+	          // if this is not a keypress event then we should
+	          // be smart about using shift keys
+	          // this will only work for US keyboards however
+	          if (action && action != 'keypress' && _SHIFT_MAP[key]) {
+	              key = _SHIFT_MAP[key];
+	              modifiers.push('shift');
+	          }
+
+	          // if this key is a modifier then add it to the list of modifiers
+	          if (_isModifier(key)) {
+	              modifiers.push(key);
+	          }
+	      }
+
+	      // depending on what the key combination is
+	      // we will try to pick the best event for it
+	      action = _pickBestAction(key, modifiers, action);
+
+	      // make sure to initialize array if this is the first time
+	      // a callback is added for this key
+	      if (!_callbacks[key]) {
+	          _callbacks[key] = [];
+	      }
+
+	      // remove an existing match if there is one
+	      _getMatches(key, modifiers, action, !sequence_name, combination);
+
+	      // add this call back to the array
+	      // if it is a sequence put it at the beginning
+	      // if not put it at the end
+	      //
+	      // this is important because the way these are processed expects
+	      // the sequence ones to come first
+	      _callbacks[key][sequence_name ? 'unshift' : 'push']({
+	          callback: callback,
+	          modifiers: modifiers,
+	          action: action,
+	          seq: sequence_name,
+	          level: level,
+	          combo: combination
+	      });
+	  }
+
+	  /**
+	   * binds multiple combinations to the same callback
+	   *
+	   * @param {Array} combinations
+	   * @param {Function} callback
+	   * @param {string|undefined} action
+	   * @returns void
+	   */
+	  function _bindMultiple(combinations, callback, action) {
+	      for (var i = 0; i < combinations.length; ++i) {
+	          _bindSingle(combinations[i], callback, action);
+	      }
+	  }
+
+	  // start!
+	  _addEvent(document, 'keypress', _handleKey);
+	  _addEvent(document, 'keydown', _handleKey);
+	  _addEvent(document, 'keyup', _handleKey);
+
+	  var mousetrap = {
+
+	      /**
+	       * binds an event to mousetrap
+	       *
+	       * can be a single key, a combination of keys separated with +,
+	       * a comma separated list of keys, an array of keys, or
+	       * a sequence of keys separated by spaces
+	       *
+	       * be sure to list the modifier keys first to make sure that the
+	       * correct key ends up getting bound (the last key in the pattern)
+	       *
+	       * @param {string|Array} keys
+	       * @param {Function} callback
+	       * @param {string=} action - 'keypress', 'keydown', or 'keyup'
+	       * @returns void
+	       */
+	      bind: function(keys, callback, action) {
+	          _bindMultiple(keys instanceof Array ? keys : [keys], callback, action);
+	          _direct_map[keys + ':' + action] = callback;
+	          return this;
+	      },
+
+	      /**
+	       * unbinds an event to mousetrap
+	       *
+	       * the unbinding sets the callback function of the specified key combo
+	       * to an empty function and deletes the corresponding key in the
+	       * _direct_map dict.
+	       *
+	       * the keycombo+action has to be exactly the same as
+	       * it was defined in the bind method
+	       *
+	       * TODO: actually remove this from the _callbacks dictionary instead
+	       * of binding an empty function
+	       *
+	       * @param {string|Array} keys
+	       * @param {string} action
+	       * @returns void
+	       */
+	      unbind: function(keys, action) {
+	          if (_direct_map[keys + ':' + action]) {
+	              delete _direct_map[keys + ':' + action];
+	              this.bind(keys, function() {}, action);
+	          }
+	          return this;
+	      },
+
+	      /**
+	       * triggers an event that has already been bound
+	       *
+	       * @param {string} keys
+	       * @param {string=} action
+	       * @returns void
+	       */
+	      trigger: function(keys, action) {
+	          _direct_map[keys + ':' + action]();
+	          return this;
+	      },
+
+	      /**
+	       * resets the library back to its initial state.  this is useful
+	       * if you want to clear out the current keyboard shortcuts and bind
+	       * new ones - for example if you switch to another page
+	       *
+	       * @returns void
+	       */
+	      reset: function() {
+	          _callbacks = {};
+	          _direct_map = {};
+	          return this;
+	      }
+	  };
+
+	module.exports = mousetrap;
+
 
 
 /***/ }
